@@ -27,17 +27,17 @@ int*** conv2D(int** input, int*** filter, int numFilters, int filterSize, int* b
 
     // Check for any possible errors with the inputs
     if(sizeof(filter) / sizeof(int**) != numFilters) {
-        fprintf(stderr, "Error: Number of Filters do not match: ", sizeof(filter) / sizeof(int**), " vs. ", numFilters);
+        fprintf(stderr, "Error: Number of Filters do not match: %d vs. %d", sizeof(filter) / sizeof(int**), numFilters);
         exit(1);
     }
 
     if(sizeof(filter[0]) / sizeof(int*) != filterSize  || sizeof(filter[0][0]) / sizeof(int) != filterSize) {
-        fprintf(stderr, "Error: Filter size does not match: ", sizeof(filter[0]) / sizeof(int*), "x", sizeof(filter[0][0]) / sizeof(int), " vs. ", filterSize, "x", filterSize);
+        fprintf(stderr, "Error: Filter size does not match: %dx%d vs. %dx%d", sizeof(filter[0]) / sizeof(int*), sizeof(filter[0][0]) / sizeof(int), filterSize, filterSize);
         exit(1);
     }
 
     if(sizeof(input[0]) / sizeof(int) < filterSize || sizeof(input) / sizeof(int*) < filterSize) {
-        fprintf(stderr, "Error: Input matrix is smaller than filter: ", sizeof(input) / sizeof(int*), "x", sizeof(input[0]) / sizeof(int), " vs. ", filterSize, "x", filterSize);
+        fprintf(stderr, "Error: Input matrix is smaller than filter: %dx%d vs. %dx%d", sizeof(input) / sizeof(int*), sizeof(input[0]) / sizeof(int), filterSize, filterSize);
         exit(1);
     }
 
