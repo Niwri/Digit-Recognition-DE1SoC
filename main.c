@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include "mnist.h"
 
 typedef double* (*activation_func_vector_ptr)(double*, int);
 typedef double (*activation_func_ptr)(double);
@@ -39,7 +40,7 @@ double crossEntropy(double* predictedProbabilities, double* targetProbabilities,
     double loss = 0;
 
     for(int i = 0; i < numOfClasses; i++) 
-        loss -= predictedProbabilities[i] * log(targetProbabilities[i]);
+        loss -= targetProbabilities[i] * log(predictedProbabilities[i]);
 
     return loss;
 }
@@ -344,6 +345,26 @@ void testLinearLayer() {
     freeDoublePointers((void**)weightArrays, numOfWeightArrays);
 }
 
+void testMNIST() {
+    // print pixels of first data in test dataset
+    int i;
+    for (i=0; i<784; i++) {
+        printf("%1.1f ", test_image[4][i]);
+        if ((i+1) % 28 == 0) putchar('\n');
+    }
+
+    // print first label in test dataset
+    printf("label: %d\n", test_label[4]);
+
+    char dummy;
+    // save image of first data in test dataset as .pgm file
+    printf("Continue: ");
+    scanf("%c", &dummy);
+
+    // show all pixels and labels in test dataset
+    print_mnist_pixel(test_image, NUM_TEST);
+    //print_mnist_label(test_label, NUM_TEST);
+}
 
 /************************************************************************************
 *                                                                                   *
@@ -352,6 +373,14 @@ void testLinearLayer() {
 *************************************************************************************/
 
 int main() {
+    /* 
+        unsigned char train_image_char[NUM_TRAIN][SIZE];
+        unsigned char test_image_char[NUM_TEST][SIZE];
+        unsigned char train_label_char[NUM_TRAIN][1];
+        unsigned char test_label_char[NUM_TEST][1];
+    */
+    load_mnist();
+
     /* Testing Conv2D [ WORKS ]*/
     //testConv2D();
 
@@ -360,6 +389,11 @@ int main() {
 
     /* Testing Linear Layer [ WORKS ]*/
     //testLinearLayer();
+    
+    /* Testing MNIST Data [ WORKS ]*/
+    //testMNIST();
+
+    
 
     printf("\nEnd.");
 
