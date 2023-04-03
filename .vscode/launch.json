@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": "c:/Users/irwin/Documents/Programming Projects/Digit-Recognition-DE1SoC",
-      "program": "c:/Users/irwin/Documents/Programming Projects/Digit-Recognition-DE1SoC/build/Debug/outDebug",
+      "cwd": "c:/Users/irwin/Documents/Programming Stuff/Digit-Recognition-DE1SoC",
+      "program": "c:/Users/irwin/Documents/Programming Stuff/Digit-Recognition-DE1SoC/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
