@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 #include "mnist.h"
 
 #ifndef M_PI
@@ -10,6 +11,8 @@
 
 typedef double* (*activation_func_vector_ptr)(double*, int);
 typedef double (*activation_func_ptr)(double);
+typedef double* (*weight_func_ptr)(int);
+
 
 /************************************************************************************
 *                                                                                   *
@@ -24,9 +27,9 @@ void freeDoublePointers(void** pointerToFree, int size) {
     free(pointerToFree);
 }
 
-void freeTriplePointers(void*** pointerToFree, int sizeFirst, int sizeSecond) {
+void freeTriplePointers(void*** pointerToFree, int sizeFirst, int *sizeSecond) {
     for(int i = 0; i < sizeFirst; i++) {
-        for(int j = 0; j < sizeSecond; j++) 
+        for(int j = 0; j < sizeSecond[i]; j++) 
             free(pointerToFree[i][j]);
         free(pointerToFree[i]);
     }    
@@ -73,18 +76,38 @@ double* reLuVector(double* vector, int vectorSize) {
     return output;
 }
 
-// Softmax Activation Function. Returns a vector of e^x / sum(e^x_i)
-double* softMaxVector(double* vector, int vectorSize) {
-    double exp_sum = 0;
-
-    for(int i = 0; i < vectorSize; i++)
-        exp_sum += exp(vector[i]);
+// Leaky ReLu Activation Function. Returns a vector of max(0.01, x)
+double* leakReLuVector(double* vector, int vectorSize) {
 
     double* output = (double*)malloc(vectorSize * sizeof(double));
 
     for(int i = 0; i < vectorSize; i++) 
-        output[i] = exp(vector[i]) / exp_sum;
+        output[i] = vector[i] > 0 ? vector[i] : 0.0001 * vector[i];
 
+    return output;
+}
+
+// Softmax Activation Function. Returns a vector of e^x / sum(e^x_i)
+double* softMaxVector(double* vector, int vectorSize) {
+
+    double maxElem = vector[0];
+
+    for(int i = 0; i < vectorSize; i++)
+        if(maxElem < vector[i])
+            maxElem = vector[i];
+
+    double exp_sum = 0;
+    double* output = (double*)malloc(vectorSize * sizeof(double));
+
+    for(int i = 0; i < vectorSize; i++) {
+        double x = exp(vector[i] - maxElem);
+        output[i] = x;
+        exp_sum += x;  // WARNING, BECOMES NAN IF BECOMES TOO BIG
+    }
+
+    for(int i = 0; i < vectorSize; i++) 
+        output[i] /= exp_sum;
+    
     return output;
 }
 
@@ -117,7 +140,7 @@ double linearNode(int inputSize, double input[inputSize], double* weights, int w
     double outputNum = bias;
     for(int i = 0; i < inputSize; i++) 
         outputNum += input[i] * weights[i];
-    
+
     return outputNum;
 }
 
@@ -188,9 +211,44 @@ double* HeInitialization(int numOfPreviousNeurons) {
 
     }
     
+    return weights;
+}
+
+// Random initialization
+double* RandomInitialization(int numOfPreviousNeurons) {
+    double* weights = (double*)malloc(numOfPreviousNeurons * sizeof(double));
+    
+    for(int i = 0; i < numOfPreviousNeurons; i++) 
+        weights[i] = (double)rand() / RAND_MAX;
     
     return weights;
 }
+
+
+/************************************************************************************
+*                                                                                   *
+*   GRADIENT FUNCTIONS                                                              *
+*                                                                                   *
+*************************************************************************************/
+
+double reLuGradient(double x) {
+    return x > 0 ? 1.0 : 0;
+}
+
+double leakReLuGradient(double x) {
+    return x > 0 ? 1.0 : 0.0001;
+}
+
+double crossEntropyGradientWithSoftmax(double y, double s) {
+
+    return s - y;
+}
+
+double softMaxGradient(double x) {
+
+}
+
+
 
 /************************************************************************************
 *                                                                                   *
@@ -275,43 +333,46 @@ void trainModel(int numOfExamples, int exampleSize, double features[][exampleSiz
     *numOfWeightLayers = 2;
     int numOfLayers = 4;  
 
+    int firstLayerNodes = 84;
+    int secondLayerNodes = 10;
+
     // Initialize number of weights, corresponding to number of input nodes at each layer
     (*weightSize) = (int*)malloc((*numOfWeightLayers) * sizeof(int));
     (*weightSize)[0] = SIZE;
-    (*weightSize)[1] = 50;
+    (*weightSize)[1] = firstLayerNodes;
 
     *numOfBiasArrays = (*numOfWeightLayers);
 
     // Initialize number of weight arrays, corresponding to number of nodes pointed to by the weights at each layer
     (*numOfWeightArrays) = (int*)malloc((*numOfWeightLayers) * sizeof(int));
-    (*numOfWeightArrays)[0] = 50;
-    (*numOfWeightArrays)[1] = 10;
+    (*numOfWeightArrays)[0] = firstLayerNodes;   // 50 Nodes in First Layer
+    (*numOfWeightArrays)[1] = secondLayerNodes;   // 10 Nodes in Second Layer
 
     // Initialize weights based on He Initialization
     (*weights) = (double***)malloc((*numOfWeightLayers) * sizeof(double**));
 
-    (*weights)[0] = (double**)malloc(50 * sizeof(double*));
-    for(int j = 0; j < 50; j++) 
-        (*weights)[0][j] = HeInitialization(exampleSize);
+    (*weights)[0] = (double**)malloc(firstLayerNodes * sizeof(double*));
+    for(int j = 0; j < firstLayerNodes; j++) 
+        (*weights)[0][j] = RandomInitialization(exampleSize);
 
-    (*weights)[1] = (double**)malloc(10 * sizeof(double**));    
-    for(int j = 0; j < 10; j++) 
-        (*weights)[1][j] = HeInitialization(50);
+    (*weights)[1] = (double**)malloc(secondLayerNodes * sizeof(double**));    
+    for(int j = 0; j < secondLayerNodes; j++) 
+        (*weights)[1][j] = RandomInitialization(firstLayerNodes);
 
 
     // Initialize biases based on He Initialization (essentially set them to 0)
     (*biasSize) = (int*)malloc((*numOfWeightLayers) * sizeof(int));
-    (*biasSize)[0] = 50;
-    (*biasSize)[1] = 10;
+    (*biasSize)[0] = firstLayerNodes;    // 50 Nodes in First layer
+    (*biasSize)[1] = secondLayerNodes;    // 10 Nodes in Second layer
 
     (*bias) = (double**)malloc((*numOfBiasArrays) * sizeof(double*));
 
-    (*bias)[0] = (double*)malloc(50 * sizeof(double));
-    for(int i = 0; i < 50; i++)
+    (*bias)[0] = (double*)malloc(firstLayerNodes * sizeof(double));
+    for(int i = 0; i < firstLayerNodes; i++)
         (*bias)[0][i] = 0;
     
-    (*bias)[1] = (double*)malloc(10 * sizeof(double));
-    for(int i = 0; i < 10; i++)
+    (*bias)[1] = (double*)malloc(secondLayerNodes * sizeof(double));
+    for(int i = 0; i < secondLayerNodes; i++)
         (*bias)[1][i] = 0;
     
 
@@ -319,45 +380,185 @@ void trainModel(int numOfExamples, int exampleSize, double features[][exampleSiz
     printf("Number of Iterations: %d\n", numOfIterations);
     while(epochs-- > 0) {
         printf("Epoch Num: %d\n", epochs);
+
+        double totalAccuracy = 0;
+
         for(int iter = 0; iter < numOfIterations; iter++) {
             double** batchImages;
-            int* batchLabelTemp;
+            int* batchLabel;
             double** batchLabelOneHot;
 
+            double accuracy = 0;
+   
+
             // Allocate features and labels into batches (batchImages, batchLabelOneHot)
-            allocateBatch(&batchImages, &batchLabelTemp, batchSize, exampleSize, features, iter, numOfExamples, labels);
+            allocateBatch(&batchImages, &batchLabel, batchSize, exampleSize, features, iter, numOfExamples, labels);
 
             // Convert label into one-hot-encoded vector 
-            oneHotEncoded(batchLabelTemp, &batchLabelOneHot, batchSize, 10);
+            oneHotEncoded(batchLabel, &batchLabelOneHot, batchSize, 10);
 
-
+            
             // Begin iterating through the batches (batchImages)
             for(int i = 0; i < batchSize; i++) {
 
                 // Initialize Outputs after each layer
                 double** outputLayers = (double**)malloc(numOfLayers * sizeof(double*));
 
-                // Number of Nodes: 50
+                // FORWARD PROPAGATION 
+                // Number of Nodes: 84
                 outputLayers[0] = linearLayer(SIZE, batchImages[i], (*weights)[0], (*weightSize)[0], (*numOfWeightArrays)[0], 
-                                             (*bias)[0], (*biasSize)[0], 50);
-
-                outputLayers[1] = reLuVector(outputLayers[0], 50);
-
-                // Number of Nodes: 10
-                outputLayers[2] = linearLayer(50, outputLayers[1], (*weights)[1], (*weightSize)[1], (*numOfWeightArrays)[1], 
-                                             (*bias)[1], (*biasSize)[1], 10);
-
-                outputLayers[3] = softMaxVector(outputLayers[2], 10);
+                                             (*bias)[0], (*biasSize)[0], firstLayerNodes);
 
                 
-                freeDoublePointers((void**)outputLayers, numOfLayers);
-            }
+                outputLayers[1] = reLuVector(outputLayers[0], firstLayerNodes);
 
+                
+                // Number of Nodes: 10
+                outputLayers[2] = linearLayer(firstLayerNodes, outputLayers[1], (*weights)[1], (*weightSize)[1], (*numOfWeightArrays)[1], 
+                                             (*bias)[1], (*biasSize)[1], secondLayerNodes);
+
+                
+                outputLayers[3] = softMaxVector(outputLayers[2], secondLayerNodes);
+                
+
+                // printf("Output Layer 0: ");
+                // for(int i = 0; i < firstLayerNodes; i++)
+                //     printf("%f, ", outputLayers[0][i]);
+
+                // printf("\n");
+
+                // printf("Output Layer 1: ");
+                // for(int i = 0; i < firstLayerNodes; i++)
+                //     printf("%f, ", outputLayers[1][i]);
+
+                // printf("\n");
+
+                // printf("Output Layer 2: ");
+                // for(int i = 0; i < secondLayerNodes; i++)
+                //     printf("%f, ", outputLayers[2][i]);
+
+                // printf("\n");
+
+                // printf("Output Layer 3: ");
+                // for(int i = 0; i < secondLayerNodes; i++)
+                //     printf("%f, ", outputLayers[3][i]);
+
+                // printf("\n");
+                // COMPUTE ACCURACY
+                int outputMaxLabel = 0;
+                int outputMaxNum = outputLayers[3][0];
+               // printf("Output: [%d, ", outputMaxNum);
+                for(int i = 1; i < 10; i++) {
+                    //printf("%f, ", outputLayers[3][i]);
+                    if(outputMaxNum < outputLayers[3][i]) {
+                        outputMaxNum = outputLayers[3][i];
+                        outputMaxLabel = i;
+                    }
+                }
+                //printf("]\n");
+                //printf("Label: %d\n", batchLabel[i]);
+                if(outputMaxLabel == batchLabel[i])
+                    accuracy++;
+                
+                // BACK PROPAGATION
+                // Last Linear Layer
+                double* gradientSoftMax = (double*)malloc(secondLayerNodes * sizeof(double));
+                for(int j = 0; j < secondLayerNodes; j++)
+                    gradientSoftMax[j] = crossEntropyGradientWithSoftmax(batchLabelOneHot[i][j], outputLayers[3][j]);
+
+                double* gradientReLu = (double*)malloc(firstLayerNodes * sizeof(double));
+
+
+                // double max_grad_norm = 5.0; // set this to a reasonable value
+
+                // double grad_norm = 0.0;
+
+                // for (int i = 0; i < secondLayerNodes; i++) {
+                //     grad_norm += gradientSoftMax[i] * gradientSoftMax[i];
+                // }
+                // grad_norm = sqrt(grad_norm);
+                // if (grad_norm > max_grad_norm) {
+                //     for (int i = 0; i < secondLayerNodes; i++) {
+                //         gradientSoftMax[i] *= max_grad_norm / grad_norm;
+                //     }
+                // }
+                
+                for(int j = 0; j < firstLayerNodes; j++) {
+                    double gradientSum = 0;  
+
+                    for(int k = 0; k < secondLayerNodes; k++) 
+                        gradientSum = gradientSum + (*weights)[1][k][j] * gradientSoftMax[k];
+
+                    gradientReLu[j] = reLuGradient(outputLayers[1][j]) * gradientSum;
+                    
+                }
+
+                // grad_norm = 0.0;
+                // for (int i = 0; i < firstLayerNodes; i++) {
+                //     grad_norm += gradientReLu[i] * gradientReLu[i];
+                // }
+                // grad_norm = sqrt(grad_norm);
+                // if (grad_norm > max_grad_norm) {
+                //     for (int i = 0; i < firstLayerNodes; i++) {
+                //         gradientReLu[i] *= max_grad_norm / grad_norm;
+                //     }
+                // }
+                
+
+                // for (int k=0; k<784; k++) {
+                //     printf("%1.1f ", batchImages[i][k]);
+                //     if ((k+1) % 28 == 0) putchar('\n');
+                // }
+                
+                // UPDATE WEIGHTS & BIASES
+                // // Last Linear Layer
+                // printf("Softmax: %f\n", gradientSoftMax[0]);
+                for(int j = 0; j < secondLayerNodes; j++) {
+                    for(int k = 0; k < (*weightSize)[1]; k++) {
+                        (*weights)[1][j][k] -= gradientSoftMax[j] * learningRate * outputLayers[1][k];
+
+                    }
+
+                    (*bias)[1][j] -= gradientSoftMax[j] * learningRate;
+                }
+                
             
-            free(batchLabelTemp);
+                // // printf("ReLu: %f\n", gradientReLu[83]);
+                // for(int j = 0; j < firstLayerNodes; j++) {
+                //     for(int k = 0; k < (*weightSize)[0]; k++)
+                //         (*weights)[0][j][k] -= gradientReLu[j] * learningRate * batchImages[i][k];
+                    
+
+                //     (*bias)[0][j] -= gradientReLu[j] * learningRate;
+
+                // }
+
+                free(gradientSoftMax);
+                free(gradientReLu);
+                freeDoublePointers((void**)outputLayers, numOfLayers);
+
+            }
+            
+            accuracy /= batchSize;
+            totalAccuracy += accuracy;
+            
+            free(batchLabel);
+            freeDoublePointers((void**)batchLabelOneHot, batchSize);
             freeDoublePointers((void**)batchImages, batchSize);
            
         }
+        
+        totalAccuracy /= numOfIterations;
+        
+        // printf("First Weights: [");
+        // for(int i = 0; i < (*weightSize)[0]-1; i++) 
+        //     printf("%f,", (*weights)[0][0][i]);
+        
+        // printf("%f]\n", (*weights)[0][0][(*weightSize)[0]-1]);
+
+        printf("Accuracy: %lf\n", totalAccuracy);
+
+        learningRate /= 10;
 
         printf("Epoch done.\n");
     }
@@ -582,6 +783,20 @@ void testOneHotEncoded() {
     }
 }
 
+void testWeightInitialization(weight_func_ptr weightFunc) {
+    double* weights;
+
+    int num = 9;
+
+    weights = weightFunc(num);
+
+    printf("Initialized Weights: [%f, ", weights[0]);
+    for(int i = 1; i < num-1; i++) 
+        printf("%f, ", weights[i]);
+
+    printf("%f]\n", weights[num-1]);
+    
+}
 
 /************************************************************************************
 *                                                                                   *
@@ -596,6 +811,9 @@ int main() {
         int  train_label[NUM_TRAIN];
         int test_label[NUM_TEST];
     */
+
+    srand(time(0));
+
     load_mnist();
 
     /* Testing Conv2D [ WORKS ]*/
@@ -622,6 +840,12 @@ int main() {
     /* Testing one-hot-encoded vector [ WORKS ]*/
     //testOneHotEncoded();
 
+    /* Testing He Initialization [ WORKS ] */
+    //testWeightInitialization(HeInitialization);
+
+    /* Testing Random Initialization [ WORKS ]*/
+    //testWeightInitialization(RandomInitialization);
+
     double*** weights = NULL;
     double** bias = NULL;
     int numOfWeightLayers;
@@ -632,7 +856,7 @@ int main() {
 
     int batchSize = 100;
     int epochs = 20;
-    double learningRate = 0.01;
+    double learningRate = 0.02;
 
     trainModel(NUM_TEST, SIZE, test_image,  
                 &weights, &numOfWeightLayers, &numOfWeightArrays, &weightSize, 
@@ -640,6 +864,10 @@ int main() {
                 test_label, 
                 batchSize, epochs, learningRate);
 
+
+    // Free remaining vectors
+    freeDoublePointers((void**)bias, numOfBiasArrays);
+    freeTriplePointers((void***)weights, numOfWeightLayers, numOfWeightArrays);
     printf("\nEnd.");
 
     return 0;
@@ -744,6 +972,10 @@ void testConv2D() {
         }
     }   
 
+    int* filterSizeHeight = (int*)malloc(sizeof(int) * numFilters);
+    for(int i = 0; i < numFilters; i++)
+        filterSizeHeight[i] = filterSize;
+
     int inputSize = 28;
     double** input = (double**)malloc(inputSize * sizeof(double*));
     
@@ -762,13 +994,18 @@ void testConv2D() {
     double*** output = conv2D(input, inputSize, filter, numFilters, filterSize, bias, reLu);
 
     int outputLayers = numFilters;
-    int outputHeight = inputSize - filterSize + 1;
+
+    int* outputHeight = (int*)malloc(numFilters * sizeof(int));
+
+    for(int i = 0; i < numFilters; i++)
+        outputHeight[i] = (inputSize - filterSize + 1);
+
     int outputWidth = inputSize - filterSize + 1;
 
     for(int i = 0; i < outputLayers; i++) {
         printf("Output Layer %d:\n", i);
 
-        for(int j = 0; j < outputHeight; j++) {
+        for(int j = 0; j < outputHeight[i]; j++) {
             for(int k = 0; k < outputWidth; k++) {
                 printf("%.2lf ", output[i][j][k]);
             }
@@ -778,5 +1015,5 @@ void testConv2D() {
     }
     freeTriplePointers((void***)output, numFilters, outputHeight);
     freeDoublePointers((void**)input, inputSize);
-    freeTriplePointers((void***)filter, numFilters, filterSize);
+    freeTriplePointers((void***)filter, numFilters, filterSizeHeight);
 }
