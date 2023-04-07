@@ -234,3 +234,69 @@ void save_mnist_pgm(double data_image[][SIZE], int index)
 
     save_image(n, "");
 }
+
+void write_2D_image_to_file(const char* fileName, const char* arrayName, int firstSize, int secondSize) {
+    FILE *fptr;
+    fptr = fopen(fileName, "w");
+
+    if(fptr == NULL) {
+        fprintf(stderr, "Error, unable to open file!");
+        exit(1);
+    }
+
+    char arrayText[1024];
+    sprintf(arrayText, "double ");
+    strcat(arrayText, arrayName);
+    sprintf(arrayText, "[%d][%d] = {", firstSize, secondSize);
+
+    fprintf(fptr, arrayText);
+
+    for(int i = 0; i < firstSize; i++) {
+        fprintf(fptr, "{");
+        
+        for(int j = 0; j < secondSize; j++) {
+            fprintf(fptr, "%f", test_image[i][j]);
+            if(j < secondSize-1)
+                fprintf(fptr, ",");
+        }
+
+        fprintf(fptr, "}");
+        if(i != firstSize-1)
+            fprintf(fptr, ",");
+    }
+
+    fprintf(fptr, "};");
+
+    fclose(fptr);
+
+}
+
+
+void write_1D_label_to_file(const char* fileName, const char* arrayName, int firstSize) {
+    FILE *fptr;
+    fptr = fopen(fileName, "w");
+
+    if(fptr == NULL) {
+        fprintf(stderr, "Error, unable to open file!");
+        exit(1);
+    }
+
+    char arrayText[1024];
+    sprintf(arrayText, "int ");
+    strcat(arrayText, arrayName);
+    sprintf(arrayText, "[%d] = {", firstSize);
+
+    fprintf(fptr, arrayText);
+
+    for(int i = 0; i < firstSize; i++) {
+        fprintf(fptr, "%d", train_label[i]);
+        if(i < firstSize-1)
+            fprintf(fptr, ",");
+        
+    }
+
+    fprintf(fptr, "};");
+
+    fclose(fptr);
+
+}
