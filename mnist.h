@@ -245,17 +245,15 @@ void write_2D_image_to_file(const char* fileName, const char* arrayName, int fir
     }
 
     char arrayText[1024];
-    sprintf(arrayText, "double ");
-    strcat(arrayText, arrayName);
-    sprintf(arrayText, "[%d][%d] = {", firstSize, secondSize);
-
-    fprintf(fptr, arrayText);
+    fprintf(fptr, "double ");
+    fprintf(fptr, arrayName);
+    fprintf(fptr, "[%d][%d] = {", firstSize, secondSize);
 
     for(int i = 0; i < firstSize; i++) {
         fprintf(fptr, "{");
         
         for(int j = 0; j < secondSize; j++) {
-            fprintf(fptr, "%f", test_image[i][j]);
+            fprintf(fptr, "%f", test_image[4500+i][j]);
             if(j < secondSize-1)
                 fprintf(fptr, ",");
         }
@@ -281,15 +279,12 @@ void write_1D_label_to_file(const char* fileName, const char* arrayName, int fir
         exit(1);
     }
 
-    char arrayText[1024];
-    sprintf(arrayText, "int ");
-    strcat(arrayText, arrayName);
-    sprintf(arrayText, "[%d] = {", firstSize);
-
-    fprintf(fptr, arrayText);
+    fprintf(fptr, "int ");
+    fprintf(fptr, arrayName);
+    fprintf(fptr, "[%d] = {", firstSize);
 
     for(int i = 0; i < firstSize; i++) {
-        fprintf(fptr, "%d", train_label[i]);
+        fprintf(fptr, "%d", train_label[33500+i]);
         if(i < firstSize-1)
             fprintf(fptr, ",");
         
