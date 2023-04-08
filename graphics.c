@@ -15,13 +15,14 @@
 #define FPGA_CHAR_BASE        0xC9000000
 
 #define LEDR_BASE             0xFF200000
-#define HEX3_HEX0_BASE        0xFF200020
+#define HEX3_HEX0_BASE        ((volatile long *) 0xFF200020)
 #define HEX5_HEX4_BASE        0xFF200030
 #define SW_BASE               0xFF200040
 #define KEY_BASE              0xFF200050
 #define TIMER_BASE            0xFF202000
 #define PIXEL_BUF_CTRL_BASE   0xFF203020
 #define CHAR_BUF_CTRL_BASE    0xFF203030
+//#define MOUSE_BASE            ((volatile int *) 0xFF200100)
 
 #define BOX_SIZE 5
 #define SIZE 28
@@ -31,6 +32,8 @@
 
 #define BORDER_TOP 16
 #define BORDER_BOTTOM 222
+
+#include "updatedMain.h"
 
 /************************************************************************************
 *                                                                                   *
@@ -49,6 +52,9 @@
 // Canvas Mode Icons
 #include "graphicHeaders/eraser.h"
 #include "graphicHeaders/pencil.h"
+
+// Cursor Icon
+#include "graphicHeaders/cursor.h"
 
 /************************************************************************************
 *                                                                                   *
@@ -105,10 +111,14 @@ int handleNumber;
 volatile int pixel_buffer_start;
 Mode drawingMode;
 int predictedNumber;
-/*
+Page currentPage;
+
 double drawArray[SIZE][SIZE];
 Model model;
-*/
+
+unsigned char seg[10] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F};
+unsigned char mousePackets[3] = {0, 0, 0}; // click = 0, x = 1, y = 2
+
 
 /************************************************************************************
 *                                                                                   *
@@ -148,6 +158,12 @@ void writeText(Position pos, char* text) {
         x++;
         text++;
     }
+}
+
+void drawCursor(int x, int y) {
+    Size cursorSize = {sizeof(cursor) / sizeof(cursor[0]), sizeof(cursor[0]) / sizeof(cursor[0][0])};
+    Position cursorPos = {x, y};
+    drawComponent(cursorPos, cursorSize, cursor);
 }
 
 /************************************************************************************
@@ -278,6 +294,10 @@ void startHandle() {
         Train Button No Hover = 2
         Train Button Click = 3
     */
+    handleNumber = 0;
+
+    if()
+
 }
 
 void loadHandle() {
@@ -285,6 +305,7 @@ void loadHandle() {
         No Handle = 0
         Load model = 4
     */
+   handleNumber = 4;
 }
 
 void menuHandle() {
@@ -297,6 +318,8 @@ void menuHandle() {
         Draw Button Click = 9
         Exit Button Click = 10
     */
+    handleNumber = 0;
+
 }
 
 void canvasHandle() {
@@ -311,7 +334,8 @@ void canvasHandle() {
         Recognize Button Click = 17
         Mode Button Click = 18
     */
-   handleNumber = 14;
+    handleNumber = 0;
+
 }
 
 page_handle_ptr handlePage[] = {startHandle, loadHandle, menuHandle, canvasHandle};
@@ -347,7 +371,7 @@ void trainButtonNoHover() {
 }
 
 void trainButtonClick() {
-
+    currentPage = LOAD;
 }
 
 /***************************************************
@@ -355,7 +379,7 @@ void trainButtonClick() {
 ****************************************************/
 
 void loadModel() {
-    /*
+    
     srand(time(0));
 
     Model model;
@@ -368,15 +392,16 @@ void loadModel() {
 
     setupModel(&model, RandomInitialization, crossEntropyGradientWithSoftmax);
 
-    int batchSize = 100;
-    int epochs = 13;
+    int batchSize = 10;
+    int epochs = 2;
     double learningRate = 0.1;
 
     trainModel(&model,
                 NUM_TRAIN, SIZE, train_image, train_label, 
                 batchSize, epochs, learningRate,
                 NUM_TEST, test_image, test_label);
-    */
+    
+    currentPage = MENU;
 }
 
 
@@ -413,19 +438,19 @@ void exitButtonNoHover() {
 }
 
 void drawButtonClick() {
-
+    currentPage = CANVAS;
 }
 
 void exitButtonClick() {
-
+    exit(1);
 } 
 
 /***************************************************
 *   Canvas Handles                                 *
 ****************************************************/
 
-void drawCursor() {
-
+void drawCanvas() {
+    
 } 
 
 void backButtonHover() {
@@ -479,7 +504,7 @@ handle_draw_ptr handleRender[] = {noHandle,
                                   trainButtonHover, trainButtonNoHover, trainButtonClick, 
                                   loadModel,
                                   drawButtonHover, drawButtonNoHover, exitButtonHover, exitButtonNoHover, drawButtonClick, exitButtonClick, 
-                                  drawCursor, backButtonHover, backButtonNoHover, recognizeButtonHover, recognizeButtonNoHover,
+                                  drawCanvas, backButtonHover, backButtonNoHover, recognizeButtonHover, recognizeButtonNoHover,
                                   backButtonClick, recognizeButtonClick, modeButtonClick};
 
 /************************************************************************************
@@ -517,11 +542,55 @@ void drawBackground() {
             plot_pixel(j, i, titleBackground[i][j]);
 }
 
+/************************************************************************************
+*                                                                                   *
+*   HEX Segment Functions                                                           *
+*                                                                                   *
+*************************************************************************************/
+
+void displayResult(int num) {
+	*HEX3_HEX0_BASE = seg[num];
+}
+
+/************************************************************************************
+*                                                                                   *
+*   Mouse Input Functions                                                           *
+*                                                                                   *
+*************************************************************************************/
+
+void mouseInput() {
+	
+  	volatile int * PS2_ptr = (int *) 0xFF200100;  // PS/2 port address
+
+	int PS2_data, RVALID;
+    
+    PS2_data = *(PS2_ptr);	// read the Data register in the PS/2 port
+    RVALID = (PS2_data & 0x8000);	// extract the RVALID field
+
+    if (RVALID != 0) {
+        mousePackets[0] = mousePackets[1];
+        mousePackets[1] = mousePackets[2];
+        mousePackets[2] = PS2_data & 0xFF;
+    }
+
+    if ((mousePackets[1] == 0xAA) && (mousePackets[2] == 0x00)) 
+        *(PS2_ptr) = 0xF4;
+    
+    drawCursor(mousePackets[2], mousePackets[3]);
+}
+
+
+/************************************************************************************
+*                                                                                   *
+*   Main Function                                                                   *
+*                                                                                   *
+*************************************************************************************/
+
 
 int main() {
 
     /* Set up page */
-    Page currentPage = CANVAS;
+    currentPage = LOAD;
     switchPageCount = 0;
     handleNumber = 0;
     drawingMode = DRAW;
@@ -548,19 +617,16 @@ int main() {
 	
     while (1)
     {
-
+        clear_screen();
+        clear_character();
         // Handle user input via polling depending on page and changes handleNumber if event handle occured 
-        handlePage[currentPage]();
-
-        // Draw the next page on back buffer. Draws again when swapped buffers.
-        if(switchPageCount < 2) {
-            clear_screen();
-            drawPage[currentPage]();
-            switchPageCount++;
-        }
+        
+        drawPage[currentPage]();
 
         // Render any event handles that occured from handlePage
         handleRender[handleNumber]();
+        
+        handlePage[currentPage]();
         
         wait_for_vsync(); // swap front and back buffers on VGA vertical sync
         pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer

@@ -4,8 +4,8 @@
 #include <math.h>
 #include <time.h>
 
-#define NUM_TEST 1000
-#define NUM_TRAIN 3000
+#define NUM_TEST 5
+#define NUM_TRAIN 20
 
 #define SIZE 784
 
@@ -19,10 +19,10 @@
 *                                                                                   *
 *************************************************************************************/
 
-#include "dataHeaders/test_image.h"
-#include "dataHeaders/test_label.h"
-#include "dataHeaders/train_image.h"
-#include "dataHeaders/train_label.h"
+#include "smallDataHeaders/test_image.h"
+#include "smallDataHeaders/test_label.h"
+#include "smallDataHeaders/train_image.h"
+#include "smallDataHeaders/train_label.h"
 
 
 /************************************************************************************
