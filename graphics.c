@@ -23,7 +23,7 @@
 #define PIXEL_BUF_CTRL_BASE   0xFF203020
 #define CHAR_BUF_CTRL_BASE    0xFF203030
 
-#define SCALESIZE 7
+#define BOX_SIZE 5
 #define SIZE 28
 
 #define BORDER_LEFT 16
@@ -46,12 +46,9 @@
 #include "graphicHeaders/button.h"
 #include "graphicHeaders/buttonClick.h"
 
-// Start Text
-#include "graphicHeaders/train.h"
-#include "graphicHeaders/trainClick.h"
-
-// Load Text
-#include "graphicHeaders/load.h"
+// Canvas Mode Icons
+#include "graphicHeaders/eraser.h"
+#include "graphicHeaders/pencil.h"
 
 /************************************************************************************
 *                                                                                   *
@@ -78,6 +75,11 @@ typedef enum {
     DRAW = 3,
 } Handle;
 
+typedef enum {
+    PENCIL,
+    ERASE
+} Mode;
+
 typedef void (*page_draw_ptr)();
 typedef void (*page_handle_ptr)();
 typedef void (*handle_draw_ptr)();
@@ -101,6 +103,7 @@ typedef struct {
 int switchPageCount;
 int handleNumber;
 volatile int pixel_buffer_start;
+Mode drawingMode;
 
 
 /************************************************************************************
@@ -205,7 +208,51 @@ void menuRender() {
 }
 
 void canvasRender() {
-        
+
+    // Draw the white background for the canvas
+    Position canvasPos = {CENTER_X - SIZE * BOX_SIZE / 2, RESOLUTION_Y * 1.0 / 7.0};
+    for(int y = 0; y < SIZE * BOX_SIZE; y++) 
+        for(int x = 0; x < SIZE * BOX_SIZE; x++) 
+            plot_pixel(canvasPos.x + x, canvasPos.y + y, 0xFFFF);    
+
+    // Back button
+    Size backSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position backPos = {CENTER_X - backSize.xSize * 3.0 / 2.0 + 2, RESOLUTION_Y * 9.0 / 11.0 - backSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
+    drawComponent(backPos, backSize, button);
+	
+	// Predict button
+    Size predictSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position predictPos = {CENTER_X + predictSize.xSize * 1.0 / 2.0 - 2, RESOLUTION_Y * 9.0 / 11.0 - predictSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
+    drawComponent(predictPos, predictSize, button);
+
+	// Back text
+    char* backText = "BACK TO MENU";
+    Position backTextPos = {CHAR_COL / 2 - 6 - backSize.xSize * CHAR_COL / RESOLUTION_X, CHAR_ROW * 9.0/11.0};
+    writeText(backTextPos, backText);
+	
+	// Predict text
+    char* predictText = "RECOGNIZE IT";
+    Position predictTextPos = {CHAR_COL / 2 - 6 + predictSize.xSize * CHAR_COL / RESOLUTION_X, CHAR_ROW * 9.0/11.0};
+    writeText(predictTextPos, predictText);
+
+
+    // Draw icon of current drawing mode
+    Size modeSize; 
+    
+    if(drawingMode == PENCIL) {
+        modeSize.ySize = sizeof(pencil) / sizeof(pencil[0]);
+        modeSize.xSize = sizeof(pencil[0])/sizeof(pencil[0][0]);
+    } else if(drawingMode == ERASE) {
+        modeSize.ySize = sizeof(eraser) / sizeof(eraser[0]);
+        modeSize.xSize = sizeof(eraser[0]) / sizeof(eraser[0][0]);
+    }
+    
+    Position modePos = {CENTER_X - modeSize.xSize / 2, RESOLUTION_Y * 9.0 / 11.0 - modeSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
+
+    if(drawingMode == PENCIL)
+        drawComponent(modePos, modeSize, pencil);
+    else if(drawingMode == ERASE) 
+        drawComponent(modePos, modeSize, eraser);
 }
 
 page_draw_ptr drawPage[] = {startRender, loadRender, menuRender, canvasRender};
@@ -226,15 +273,33 @@ void startHandle() {
 }
 
 void loadHandle() {
-    
+    /*
+        No Handle = 0
+    */
 }
 
 void menuHandle() {
-    
+    /*
+        No Handle = 0
+        Draw Button Hover = 3
+        Exit Button Hover = 4
+        Draw Button Click = 5
+        Exit Button Click = 6
+    */
 }
 
 void canvasHandle() {
-    
+    /*
+        No Handle = 0
+        Draw Cursor = 7
+        Back Button Hover = 8
+        Recognize Button Hover = 9
+        Mode Button Hover = 10
+        Back Button Click = 11
+        Recognize Button Click = 12
+        Mode Button Click = 13
+
+    */
 }
 
 page_handle_ptr handlePage[] = {startHandle, loadHandle, menuHandle, canvasHandle};
@@ -245,11 +310,85 @@ page_handle_ptr handlePage[] = {startHandle, loadHandle, menuHandle, canvasHandl
 *                                                                                   *
 *************************************************************************************/
 
+
+/* Global Handle */
 void noHandle() {
     return;
 }
 
-handle_draw_ptr handleRender[] = {noHandle};
+/***************************************************
+*   Start Handles                                  *
+****************************************************/
+
+void trainButtonHover() {
+
+}
+
+void trainButtonClick() {
+
+}
+
+/***************************************************
+*   Menu Handles                                   *
+****************************************************/
+
+void drawButtonHover() {
+
+}
+
+void exitButtonHover() {
+
+}
+
+void drawButtonClick() {
+
+}
+
+void exitButtonClick() {
+
+} 
+
+/***************************************************
+*   Canvas Handles                                 *
+****************************************************/
+
+void drawCursor() {
+
+} 
+
+void backButtonHover() {
+
+}
+
+void recognizeButtonHover() {
+
+}
+
+void modeButtonHover() {
+
+}
+
+void backButtonClick() {
+
+}
+
+void recognizeButtonClick() {
+
+}
+
+void modeButtonClick() {
+
+}
+
+/***************************************************
+*   Handle Function Array                          *
+****************************************************/
+
+handle_draw_ptr handleRender[] = {noHandle, 
+                                  trainButtonHover, trainButtonClick, 
+                                  drawButtonHover, exitButtonHover, drawButtonClick, exitButtonClick, 
+                                  drawCursor, backButtonHover, recognizeButtonHover, modeButtonHover,
+                                  backButtonClick, recognizeButtonClick, modeButtonClick};
 
 /************************************************************************************
 *                                                                                   *
@@ -287,13 +426,13 @@ void drawBackground() {
 }
 
 
-
-void main() {
+int main() {
 
     /* Set up page */
-    Page currentPage = MENU;
+    Page currentPage = CANVAS;
     switchPageCount = 0;
     handleNumber = 0;
+    drawingMode = DRAW;
 
     /* Set up buffers */
     volatile int * pixel_ctrl_ptr = (int*)PIXEL_BUF_CTRL_BASE;
