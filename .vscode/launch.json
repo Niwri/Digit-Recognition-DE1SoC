@@ -7,9 +7,9 @@
       "request": "launch",
       "args": [],
       "stopAtEntry": false,
-      "externalConsole": true,
-      "cwd": "c:/Users/irwin/Documents/Programming Stuff/Digit-Recognition-DE1SoC",
-      "program": "c:/Users/irwin/Documents/Programming Stuff/Digit-Recognition-DE1SoC/build/Debug/outDebug",
+      "externalConsole": false,
+      "cwd": "/Users/liamnguyen/Desktop/UofT Eng/Second Year/Winter Term/ECE243/Labs/Digit-Recognition-DE1SoC",
+      "program": "/Users/liamnguyen/Desktop/UofT Eng/Second Year/Winter Term/ECE243/Labs/Digit-Recognition-DE1SoC/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

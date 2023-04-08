@@ -15,13 +15,14 @@
 #define FPGA_CHAR_BASE        0xC9000000
 
 #define LEDR_BASE             0xFF200000
-#define HEX3_HEX0_BASE        0xFF200020
+#define HEX3_HEX0_BASE        ((volatile long *) 0xFF200020)
 #define HEX5_HEX4_BASE        0xFF200030
 #define SW_BASE               0xFF200040
 #define KEY_BASE              0xFF200050
 #define TIMER_BASE            0xFF202000
 #define PIXEL_BUF_CTRL_BASE   0xFF203020
 #define CHAR_BUF_CTRL_BASE    0xFF203030
+//#define MOUSE_BASE            ((volatile int *) 0xFF200100)
 
 #define BOX_SIZE 5
 #define SIZE 28
@@ -104,6 +105,7 @@ int switchPageCount;
 int handleNumber;
 volatile int pixel_buffer_start;
 Mode drawingMode;
+unsigned char seg[10] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F};
 
 
 /************************************************************************************
@@ -475,3 +477,35 @@ int main() {
     }
 }
 
+void displayResult(int num) {
+	*HEX3_HEX0_BASE = seg[num];
+}
+
+void userDrawInput() {
+	unsigned char byte1 = 0;
+	unsigned char byte2 = 0;
+	unsigned char byte3 = 0;
+	
+  	volatile int * PS2_ptr = (int *) 0xFF200100;  // PS/2 port address
+
+	int PS2_data, RVALID;
+
+	while (1) {
+		PS2_data = *(PS2_ptr);	// read the Data register in the PS/2 port
+		RVALID = (PS2_data & 0x8000);	// extract the RVALID field
+		if (RVALID != 0)
+		{
+			/* always save the last three bytes received */
+			byte1 = byte2;
+			byte2 = byte3;
+			byte3 = PS2_data & 0xFF;
+		}
+		if ( (byte2 == 0xAA) && (byte3 == 0x00) )
+		{
+			// mouse inserted; initialize sending of data
+			*(PS2_ptr) = 0xF4;
+		}
+		// Display last byte on Red LEDs
+		*RLEDs = byte3;
+	}
+}
