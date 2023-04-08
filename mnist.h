@@ -235,7 +235,7 @@ void save_mnist_pgm(double data_image[][SIZE], int index)
     save_image(n, "");
 }
 
-void write_2D_image_to_file(const char* fileName, const char* arrayName, int firstSize, int secondSize) {
+void write_2D_image_to_file(const char* fileName, const char* arrayName, int firstSize, int arrayIndexStart, double arrayToCopy[][SIZE]) {
     FILE *fptr;
     fptr = fopen(fileName, "w");
 
@@ -247,14 +247,14 @@ void write_2D_image_to_file(const char* fileName, const char* arrayName, int fir
     char arrayText[1024];
     fprintf(fptr, "double ");
     fprintf(fptr, arrayName);
-    fprintf(fptr, "[%d][%d] = {", firstSize, secondSize);
+    fprintf(fptr, "[%d][%d] = {", firstSize, SIZE);
 
     for(int i = 0; i < firstSize; i++) {
         fprintf(fptr, "{");
         
-        for(int j = 0; j < secondSize; j++) {
-            fprintf(fptr, "%f", test_image[4500+i][j]);
-            if(j < secondSize-1)
+        for(int j = 0; j < SIZE; j++) {
+            fprintf(fptr, "%f", arrayToCopy[arrayIndexStart+i][j]);
+            if(j < SIZE-1)
                 fprintf(fptr, ",");
         }
 
@@ -270,7 +270,7 @@ void write_2D_image_to_file(const char* fileName, const char* arrayName, int fir
 }
 
 
-void write_1D_label_to_file(const char* fileName, const char* arrayName, int firstSize) {
+void write_1D_label_to_file(const char* fileName, const char* arrayName, int firstSize, int arrayStartIndex, int arraySize, int arrayToCopy[arraySize]) {
     FILE *fptr;
     fptr = fopen(fileName, "w");
 
@@ -284,7 +284,7 @@ void write_1D_label_to_file(const char* fileName, const char* arrayName, int fir
     fprintf(fptr, "[%d] = {", firstSize);
 
     for(int i = 0; i < firstSize; i++) {
-        fprintf(fptr, "%d", train_label[33500+i]);
+        fprintf(fptr, "%d", arrayToCopy[arrayStartIndex+i]);
         if(i < firstSize-1)
             fprintf(fptr, ",");
         

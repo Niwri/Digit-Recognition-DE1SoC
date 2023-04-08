@@ -86,6 +86,9 @@
     "sstream": "c",
     "stdexcept": "c",
     "streambuf": "c",
-    "typeinfo": "c"
+    "typeinfo": "c",
+    "test_image.h": "c",
+    "test_label.h": "c",
+    "train_label.h": "c"
   }
 }
