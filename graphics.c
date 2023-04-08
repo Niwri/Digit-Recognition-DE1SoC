@@ -44,7 +44,7 @@
 
 // Button template
 #include "graphicHeaders/button.h"
-#include "graphicHeaders/buttonClick.h"
+#include "graphicHeaders/buttonHover.h"
 
 // Canvas Mode Icons
 #include "graphicHeaders/eraser.h"
@@ -104,7 +104,11 @@ int switchPageCount;
 int handleNumber;
 volatile int pixel_buffer_start;
 Mode drawingMode;
-
+int predictedNumber;
+/*
+double drawArray[SIZE][SIZE];
+Model model;
+*/
 
 /************************************************************************************
 *                                                                                   *
@@ -154,17 +158,17 @@ void writeText(Position pos, char* text) {
 
 void startRender() {
 
-    // Draw title
+    // Render Title
     Size titleSize = {sizeof(title) / sizeof(title[0]), sizeof(title[0]) / sizeof(title[0][0])};
     Position titlePos = {CENTER_X - titleSize.xSize / 2, BORDER_TOP + 40};
     drawComponent(titlePos, titleSize, title);
     
-    // Draw button
+    // Render button
     Size buttonSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
     Position buttonPos = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
     drawComponent(buttonPos, buttonSize, button);
     
-    // Draw train text
+    // Render train text
     char* text = "TRAIN MODEL";
     Position textPos = {CENTER_COL - 5, CHAR_ROW * 2.0 / 3.0};
     writeText(textPos, text);
@@ -172,36 +176,39 @@ void startRender() {
 }
 
 void loadRender() {
-    // Draw title
+    // Render title
     Size titleSize = {sizeof(title) / sizeof(title[0]), sizeof(title[0]) / sizeof(title[0][0])};
     Position titlePos = {CENTER_X - titleSize.xSize / 2, BORDER_TOP + 40};
     drawComponent(titlePos, titleSize, title);
 
+    // Render loading text
     char* text = "LOADING...";
     Position textPos = {CHAR_COL / 2 - 5, CHAR_ROW * 2.0/3.0};
     writeText(textPos, text);
 }
 
 void menuRender() {
-    // Draw title
+    // Render title
     Size titleSize = {sizeof(title) / sizeof(title[0]), sizeof(title[0]) / sizeof(title[0][0])};
     Position titlePos = {CENTER_X - titleSize.xSize / 2, BORDER_TOP + 40};
     drawComponent(titlePos, titleSize, title);
     
-    // Draw button
+    // Render draw button
     Size drawSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
     Position drawPos = {CENTER_X - drawSize.xSize/2, RESOLUTION_Y * 1.0 / 2.0 - drawSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
     drawComponent(drawPos, drawSize, button);
 
-    // Exit button
+    // Render exit button
     Size exitSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
     Position exitPos = {CENTER_X - exitSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - exitSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
     drawComponent(exitPos, exitSize, button);
 
+    // Render draw text
     char* drawText = "DRAW NOW";
     Position drawTextPos = {CHAR_COL / 2 - 4, CHAR_ROW * 1.0/2.0};
     writeText(drawTextPos, drawText);
 
+    //Render exit text
     char* exitText = "EXIT";
     Position exitTextPos = {CHAR_COL / 2 - 2, CHAR_ROW * 2.0/3.0};
     writeText(exitTextPos, exitText);
@@ -215,28 +222,28 @@ void canvasRender() {
         for(int x = 0; x < SIZE * BOX_SIZE; x++) 
             plot_pixel(canvasPos.x + x, canvasPos.y + y, 0xFFFF);    
 
-    // Back button
+    // Render back button
     Size backSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
     Position backPos = {CENTER_X - backSize.xSize * 3.0 / 2.0 + 2, RESOLUTION_Y * 9.0 / 11.0 - backSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
     drawComponent(backPos, backSize, button);
 	
-	// Predict button
+	// Render predict button
     Size predictSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
     Position predictPos = {CENTER_X + predictSize.xSize * 1.0 / 2.0 - 2, RESOLUTION_Y * 9.0 / 11.0 - predictSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
     drawComponent(predictPos, predictSize, button);
 
-	// Back text
+	// Render back text
     char* backText = "BACK TO MENU";
     Position backTextPos = {CHAR_COL / 2 - 6 - backSize.xSize * CHAR_COL / RESOLUTION_X, CHAR_ROW * 9.0/11.0};
     writeText(backTextPos, backText);
 	
-	// Predict text
+	// Render predict text
     char* predictText = "RECOGNIZE IT";
     Position predictTextPos = {CHAR_COL / 2 - 6 + predictSize.xSize * CHAR_COL / RESOLUTION_X, CHAR_ROW * 9.0/11.0};
     writeText(predictTextPos, predictText);
 
 
-    // Draw icon of current drawing mode
+    // Render icon of current drawing mode
     Size modeSize; 
     
     if(drawingMode == PENCIL) {
@@ -268,38 +275,43 @@ void startHandle() {
     /*
         No Handle = 0
         Train Button Hover = 1
-        Train Button Click = 2
+        Train Button No Hover = 2
+        Train Button Click = 3
     */
 }
 
 void loadHandle() {
     /*
         No Handle = 0
+        Load model = 4
     */
 }
 
 void menuHandle() {
     /*
         No Handle = 0
-        Draw Button Hover = 3
-        Exit Button Hover = 4
-        Draw Button Click = 5
-        Exit Button Click = 6
+        Draw Button Hover = 5
+        Draw Button No Hover = 6
+        Exit Button Hover = 7
+        Exit Button No Hover = 8
+        Draw Button Click = 9
+        Exit Button Click = 10
     */
 }
 
 void canvasHandle() {
     /*
         No Handle = 0
-        Draw Cursor = 7
-        Back Button Hover = 8
-        Recognize Button Hover = 9
-        Mode Button Hover = 10
-        Back Button Click = 11
-        Recognize Button Click = 12
-        Mode Button Click = 13
-
+        Draw Cursor = 11
+        Back Button Hover = 12
+        Back Button No Hover = 13
+        Recognize Button Hover = 14
+        Recognize Button No Hover = 15
+        Back Button Click = 16
+        Recognize Button Click = 17
+        Mode Button Click = 18
     */
+   handleNumber = 14;
 }
 
 page_handle_ptr handlePage[] = {startHandle, loadHandle, menuHandle, canvasHandle};
@@ -321,7 +333,17 @@ void noHandle() {
 ****************************************************/
 
 void trainButtonHover() {
+    // Render highlighted button
+    Size buttonSize = {sizeof(buttonHover) / sizeof(buttonHover[0]), sizeof(buttonHover[0]) / sizeof(buttonHover[0][0])};
+    Position buttonPos = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
+    drawComponent(buttonPos, buttonSize, buttonHover);
+}
 
+void trainButtonNoHover() {
+    // Render normal button
+    Size buttonSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position buttonPos = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
+    drawComponent(buttonPos, buttonSize, button);
 }
 
 void trainButtonClick() {
@@ -329,15 +351,65 @@ void trainButtonClick() {
 }
 
 /***************************************************
+*   Load Handles                                   *
+****************************************************/
+
+void loadModel() {
+    /*
+    srand(time(0));
+
+    Model model;
+
+    initializeModel(&model, SIZE);
+
+    addLayer(&model, LINEAR, 50, leakReLuVector, leakReLuGradient);
+
+    addLayer(&model, LINEAR, 10, softMaxVector, softMaxGradient);
+
+    setupModel(&model, RandomInitialization, crossEntropyGradientWithSoftmax);
+
+    int batchSize = 100;
+    int epochs = 13;
+    double learningRate = 0.1;
+
+    trainModel(&model,
+                NUM_TRAIN, SIZE, train_image, train_label, 
+                batchSize, epochs, learningRate,
+                NUM_TEST, test_image, test_label);
+    */
+}
+
+
+/***************************************************
 *   Menu Handles                                   *
 ****************************************************/
 
 void drawButtonHover() {
+    // Render draw button
+    Size drawSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position drawPos = {CENTER_X - drawSize.xSize/2, RESOLUTION_Y * 1.0 / 2.0 - drawSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
+    drawComponent(drawPos, drawSize, button);
+}
 
+void drawButtonNoHover() {
+    // Render draw hover button
+    Size drawSize = {sizeof(buttonHover) / sizeof(buttonHover[0]), sizeof(buttonHover[0]) / sizeof(buttonHover[0][0])};
+    Position drawPos = {CENTER_X - drawSize.xSize/2, RESOLUTION_Y * 1.0 / 2.0 - drawSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
+    drawComponent(drawPos, drawSize, buttonHover);
 }
 
 void exitButtonHover() {
+    // Render exit button
+    Size exitSize = {sizeof(buttonHover) / sizeof(buttonHover[0]), sizeof(buttonHover[0]) / sizeof(buttonHover[0][0])};
+    Position exitPos = {CENTER_X - exitSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - exitSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
+    drawComponent(exitPos, exitSize, buttonHover);
+}
 
+void exitButtonNoHover() {
+    // Render exit button
+    Size exitSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position exitPos = {CENTER_X - exitSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - exitSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
+    drawComponent(exitPos, exitSize, button);
 }
 
 void drawButtonClick() {
@@ -357,15 +429,32 @@ void drawCursor() {
 } 
 
 void backButtonHover() {
+    // Render back button
+    Size backSize = {sizeof(buttonHover) / sizeof(buttonHover[0]), sizeof(buttonHover[0]) / sizeof(buttonHover[0][0])};
+    Position backPos = {CENTER_X - backSize.xSize * 3.0 / 2.0 + 2, RESOLUTION_Y * 9.0 / 11.0 - backSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
+    drawComponent(backPos, backSize, buttonHover);
+}
+	
 
+void backButtonNoHover() {
+    // Render back button
+    Size backSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position backPos = {CENTER_X - backSize.xSize * 3.0 / 2.0 + 2, RESOLUTION_Y * 9.0 / 11.0 - backSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
+    drawComponent(backPos, backSize, button);
 }
 
 void recognizeButtonHover() {
-
+    // Render predict button
+    Size predictSize = {sizeof(buttonHover) / sizeof(buttonHover[0]), sizeof(buttonHover[0]) / sizeof(buttonHover[0][0])};
+    Position predictPos = {CENTER_X + predictSize.xSize * 1.0 / 2.0 - 2, RESOLUTION_Y * 9.0 / 11.0 - predictSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
+    drawComponent(predictPos, predictSize, buttonHover);
 }
 
-void modeButtonHover() {
-
+void recognizeButtonNoHover() {
+    // Render predict button
+    Size predictSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position predictPos = {CENTER_X + predictSize.xSize * 1.0 / 2.0 - 2, RESOLUTION_Y * 9.0 / 11.0 - predictSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
+    drawComponent(predictPos, predictSize, button);
 }
 
 void backButtonClick() {
@@ -373,7 +462,9 @@ void backButtonClick() {
 }
 
 void recognizeButtonClick() {
-
+    /*
+        predictedNumber = predictModel(&model, drawArray);
+    */
 }
 
 void modeButtonClick() {
@@ -385,9 +476,10 @@ void modeButtonClick() {
 ****************************************************/
 
 handle_draw_ptr handleRender[] = {noHandle, 
-                                  trainButtonHover, trainButtonClick, 
-                                  drawButtonHover, exitButtonHover, drawButtonClick, exitButtonClick, 
-                                  drawCursor, backButtonHover, recognizeButtonHover, modeButtonHover,
+                                  trainButtonHover, trainButtonNoHover, trainButtonClick, 
+                                  loadModel,
+                                  drawButtonHover, drawButtonNoHover, exitButtonHover, exitButtonNoHover, drawButtonClick, exitButtonClick, 
+                                  drawCursor, backButtonHover, backButtonNoHover, recognizeButtonHover, recognizeButtonNoHover,
                                   backButtonClick, recognizeButtonClick, modeButtonClick};
 
 /************************************************************************************

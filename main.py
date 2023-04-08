@@ -82,5 +82,5 @@ def printToArrayFile(fileName:str, arrayName:str):
 
     print('Complete')
 
-# printToArrayFile('graphics/pencil.png', 'pencil')
+#printToArrayFile('graphics/pencil.png', 'pencil')
 replaceInclude('graphics.c', 'updatedGraphics.c')
