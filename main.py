@@ -82,6 +82,6 @@ def printToArrayFile(fileName:str, arrayName:str):
 
     print('Complete')
 
-printToArrayFile('graphics/button.png', 'button')
-printToArrayFile('graphics/buttonClick.png', 'buttonClick')
+# printToArrayFile('graphics/button.png', 'button')
+# printToArrayFile('graphics/buttonClick.png', 'buttonClick')
 replaceInclude('graphics.c', 'updatedGraphics.c')

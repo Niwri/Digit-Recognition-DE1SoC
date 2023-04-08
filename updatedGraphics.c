@@ -158,7 +158,7 @@ void startRender() {
     
     // Draw button
     Size buttonSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
-    Position buttonPos = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2};
+    Position buttonPos = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
     drawComponent(buttonPos, buttonSize, button);
     
     // Draw train text
@@ -180,7 +180,28 @@ void loadRender() {
 }
 
 void menuRender() {
-        
+    // Draw title
+    Size titleSize = {sizeof(title) / sizeof(title[0]), sizeof(title[0]) / sizeof(title[0][0])};
+    Position titlePos = {CENTER_X - titleSize.xSize / 2, BORDER_TOP + 40};
+    drawComponent(titlePos, titleSize, title);
+    
+    // Draw button
+    Size drawSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position drawPos = {CENTER_X - drawSize.xSize/2, RESOLUTION_Y * 1.0 / 2.0 - drawSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
+    drawComponent(drawPos, drawSize, button);
+
+    // Exit button
+    Size exitSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position exitPos = {CENTER_X - exitSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - exitSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
+    drawComponent(exitPos, exitSize, button);
+
+    char* drawText = "DRAW NOW";
+    Position drawTextPos = {CHAR_COL / 2 - 4, CHAR_ROW * 1.0/2.0};
+    writeText(drawTextPos, drawText);
+
+    char* exitText = "EXIT";
+    Position exitTextPos = {CHAR_COL / 2 - 2, CHAR_ROW * 2.0/3.0};
+    writeText(exitTextPos, exitText);
 }
 
 void canvasRender() {
@@ -197,7 +218,11 @@ page_draw_ptr drawPage[] = {startRender, loadRender, menuRender, canvasRender};
 *************************************************************************************/
 
 void startHandle() {
-
+    /*
+        No Handle = 0
+        Train Button Hover = 1
+        Train Button Click = 2
+    */
 }
 
 void loadHandle() {
@@ -264,29 +289,36 @@ void drawBackground() {
 
 
 void main() {
+
+    /* Set up page */
+    Page currentPage = MENU;
+    switchPageCount = 0;
+    handleNumber = 0;
+
+    /* Set up buffers */
     volatile int * pixel_ctrl_ptr = (int*)PIXEL_BUF_CTRL_BASE;
+    
+    clear_character();
 
     *(pixel_ctrl_ptr + 1) = FPGA_ONCHIP_BASE; 
     wait_for_vsync();
     
     pixel_buffer_start = *pixel_ctrl_ptr;
     drawBackground();
+    drawPage[currentPage]();
 
     *(pixel_ctrl_ptr + 1) = SDRAM_BASE;
     
     pixel_buffer_start = *(pixel_ctrl_ptr + 1);
     drawBackground(); 
+    drawPage[currentPage]();
 
-    clear_character();
-
-    Page currentPage = LOAD;
-    switchPageCount = 0;
-    handleNumber = 0;
+    
 	
     while (1)
     {
 
-        // Handle user input via polling depending on page
+        // Handle user input via polling depending on page and changes handleNumber if event handle occured 
         handlePage[currentPage]();
 
         // Draw the next page on back buffer. Draws again when swapped buffers.
@@ -296,6 +328,7 @@ void main() {
             switchPageCount++;
         }
 
+        // Render any event handles that occured from handlePage
         handleRender[handleNumber]();
         
         wait_for_vsync(); // swap front and back buffers on VGA vertical sync
