@@ -25,7 +25,7 @@
 //#define MOUSE_BASE            ((volatile int *) 0xFF200100)
 
 #define BOX_SIZE 5
-#define SIZE 28
+#define CANVAS_SIZE 28
 
 #define BORDER_LEFT 16
 #define BORDER_RIGHT 302
@@ -107,7 +107,6 @@ typedef struct {
 *************************************************************************************/
 
 int switchPageCount;
-int handleNumber;
 volatile int pixel_buffer_start;
 Mode drawingMode;
 int predictedNumber;
@@ -117,8 +116,15 @@ double drawArray[SIZE][SIZE];
 Model model;
 
 unsigned char seg[10] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F};
-unsigned char mousePackets[3] = {0, 0, 0}; // click = 0, x = 1, y = 2
 
+// To keep track of mouse movements and events
+unsigned char mousePackets[3] = {0, 0, 0}; // click = 0, x = 1, y = 2
+int mouseX = 0, mouseY = 0;
+bool leftClick = false;
+
+// To store every handle event to process 
+int handleNum[3] = {-1, -1, -1}; 
+int numOfHandles = 0;
 
 /************************************************************************************
 *                                                                                   *
@@ -134,6 +140,16 @@ void write_char(int x, int y, char c) {
 
 void plot_pixel(int x, int y, short int line_color) {
     *(short int *)(pixel_buffer_start + (y << 10) + (x << 1)) = line_color;
+}
+
+/************************************************************************************
+*                                                                                   *
+*   Helper Functions                                                                *
+*                                                                                   *
+*************************************************************************************/
+
+bool mouseIsInside(int minX, int minY, int maxX, int maxY) {
+    return (minX <= mouseX && mouseX <= maxX && minY <= mouseY && mouseY <= maxY) == 1 ? true : false;
 }
 
 /************************************************************************************
@@ -164,6 +180,12 @@ void drawCursor(int x, int y) {
     Size cursorSize = {sizeof(cursor) / sizeof(cursor[0]), sizeof(cursor[0]) / sizeof(cursor[0][0])};
     Position cursorPos = {x, y};
     drawComponent(cursorPos, cursorSize, cursor);
+}
+
+void clearCanvas() {
+    for(int i = 0; i < SIZE; i++)
+        for(int j = 0; j < SIZE; j++)
+            drawArray[i][j] = 0;
 }
 
 /************************************************************************************
@@ -233,9 +255,9 @@ void menuRender() {
 void canvasRender() {
 
     // Draw the white background for the canvas
-    Position canvasPos = {CENTER_X - SIZE * BOX_SIZE / 2, RESOLUTION_Y * 1.0 / 7.0};
-    for(int y = 0; y < SIZE * BOX_SIZE; y++) 
-        for(int x = 0; x < SIZE * BOX_SIZE; x++) 
+    Position canvasPos = {CENTER_X - CANVAS_SIZE * BOX_SIZE / 2, RESOLUTION_Y * 1.0 / 7.0};
+    for(int y = 0; y < CANVAS_SIZE * BOX_SIZE; y++) 
+        for(int x = 0; x < CANVAS_SIZE * BOX_SIZE; x++) 
             plot_pixel(canvasPos.x + x, canvasPos.y + y, 0xFFFF);    
 
     // Render back button
@@ -294,10 +316,25 @@ void startHandle() {
         Train Button No Hover = 2
         Train Button Click = 3
     */
-    handleNumber = 0;
 
-    if()
+    // Check if mouse is inside train button
+    Size buttonSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position buttonPos = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
 
+    if(mouseIsInside(buttonPos.x, buttonPos.x + buttonSize.xSize, buttonPos.y, buttonPos.y + buttonSize.ySize)) {
+        
+        handleNum[0] = 1;
+
+        // Check if mouse clicked on train button
+        if(leftClick) {
+            handleNum[0] = 3;
+            leftClick = false;
+        }
+    } else {
+        handleNum[0] = 2;
+    }
+
+    numOfHandles = 1;
 }
 
 void loadHandle() {
@@ -305,7 +342,9 @@ void loadHandle() {
         No Handle = 0
         Load model = 4
     */
-   handleNumber = 4;
+   // Train Model
+   handleNum[0] = 4;
+   numOfHandles = 1;
 }
 
 void menuHandle() {
@@ -318,14 +357,46 @@ void menuHandle() {
         Draw Button Click = 9
         Exit Button Click = 10
     */
-    handleNumber = 0;
 
+    // Check if user is hovering over draw button
+    Size drawSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position drawPos = {CENTER_X - drawSize.xSize/2, RESOLUTION_Y * 1.0 / 2.0 - drawSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
+
+    if(mouseIsInside(drawPos.x, drawPos.x + drawSize.xSize, drawPos.y, drawPos.y + drawSize.ySize)) {
+        handleNum[0] = 5;
+
+        // Check if user clicked on draw button
+        if(leftClick) {
+            handleNum[0] = 9;
+            leftClick = false;
+        }
+    } else {
+        handleNum[0] = 6;
+    }
+
+    // Check if user is hovering over exit button
+    Size exitSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position exitPos = {CENTER_X - exitSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - exitSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
+
+    if(mouseIsInside(exitPos.x, exitPos.x + exitSize.xSize, exitPos.y, exitPos.y + exitSize.ySize)) {
+        handleNum[1] = 7;
+
+        // Check if user clicked on exit button
+        if(leftClick) {
+            handleNum[1] = 10;
+            leftClick = false;
+        }
+    } else {
+        handleNum[1] = 8;
+    }
+
+    numOfHandles = 2;
 }
 
 void canvasHandle() {
     /*
         No Handle = 0
-        Draw Cursor = 11
+        Draw Canvas = 11
         Back Button Hover = 12
         Back Button No Hover = 13
         Recognize Button Hover = 14
@@ -334,8 +405,71 @@ void canvasHandle() {
         Recognize Button Click = 17
         Mode Button Click = 18
     */
-    handleNumber = 0;
+    
+    // Check if mouse left-clicked in canvas for drawing
+    Position canvasPos = {CENTER_X - CANVAS_SIZE * BOX_SIZE / 2, RESOLUTION_Y * 1.0 / 7.0};
 
+    if(mouseIsInside(canvasPos.x, canvasPos.x + CANVAS_SIZE * BOX_SIZE, canvasPos.y, canvasPos.y + CANVAS_SIZE * BOX_SIZE)) {
+        if(leftClick) {
+            handleNum[0] = 11;
+            leftClick = false;
+            numOfHandles++;
+        }
+    }
+
+    // Check if user is hovering over back button
+    Size backSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position backPos = {CENTER_X - backSize.xSize * 3.0 / 2.0 + 2, RESOLUTION_Y * 9.0 / 11.0 - backSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
+    if(mouseIsInside(backPos.x, backPos.x + backSize.xSize, backPos.y, backPos.y + backSize.ySize)) {
+        handleNum[numOfHandles] = 12;
+
+        // Check if user clicked on back button
+        if(leftClick) {
+            handleNum[numOfHandles] = 16;
+            leftClick = false;
+        }
+    } else {
+        handleNum[numOfHandles] = 13;
+    }
+    numOfHandles++;
+	
+	// Check if user is hovering over predict button
+    Size predictSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position predictPos = {CENTER_X + predictSize.xSize * 1.0 / 2.0 - 2, RESOLUTION_Y * 9.0 / 11.0 - predictSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
+    if(mouseIsInside(predictPos.x, predictPos.x + predictSize.xSize, predictPos.y, predictPos.y + predictSize.ySize)) {
+        handleNum[numOfHandles] = 14;
+
+        // Check if user clicked on predict button
+        if(leftClick) {
+            handleNum[numOfHandles] = 17;
+            leftClick = false;
+        }
+    } else {
+        handleNum[numOfHandles] = 15;
+    }
+    numOfHandles++;
+    
+    // Check if user clicked on mode button to switch drawing mode
+    Size modeSize; 
+    
+    if(drawingMode == PENCIL) {
+        modeSize.ySize = sizeof(pencil) / sizeof(pencil[0]);
+        modeSize.xSize = sizeof(pencil[0])/sizeof(pencil[0][0]);
+    } else if(drawingMode == ERASE) {
+        modeSize.ySize = sizeof(eraser) / sizeof(eraser[0]);
+        modeSize.xSize = sizeof(eraser[0]) / sizeof(eraser[0][0]);
+    }
+    
+    Position modePos = {CENTER_X - modeSize.xSize / 2, RESOLUTION_Y * 9.0 / 11.0 - modeSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
+
+    if(mouseIsInside(modePos.x, modePos.x + modeSize.xSize, modePos.y, modePos.y + modeSize.ySize)) {
+        if(leftClick) {
+            handleNum[numOfHandles] = 18;
+            numOfHandles++;
+            leftClick = false;
+        }
+    }
+    
 }
 
 page_handle_ptr handlePage[] = {startHandle, loadHandle, menuHandle, canvasHandle};
@@ -410,17 +544,17 @@ void loadModel() {
 ****************************************************/
 
 void drawButtonHover() {
-    // Render draw button
-    Size drawSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
-    Position drawPos = {CENTER_X - drawSize.xSize/2, RESOLUTION_Y * 1.0 / 2.0 - drawSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
-    drawComponent(drawPos, drawSize, button);
-}
-
-void drawButtonNoHover() {
     // Render draw hover button
     Size drawSize = {sizeof(buttonHover) / sizeof(buttonHover[0]), sizeof(buttonHover[0]) / sizeof(buttonHover[0][0])};
     Position drawPos = {CENTER_X - drawSize.xSize/2, RESOLUTION_Y * 1.0 / 2.0 - drawSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
     drawComponent(drawPos, drawSize, buttonHover);
+
+}
+
+void drawButtonNoHover() {    // Render draw button
+    Size drawSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position drawPos = {CENTER_X - drawSize.xSize/2, RESOLUTION_Y * 1.0 / 2.0 - drawSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
+    drawComponent(drawPos, drawSize, button);
 }
 
 void exitButtonHover() {
@@ -450,7 +584,18 @@ void exitButtonClick() {
 ****************************************************/
 
 void drawCanvas() {
-    
+    // Draw the white background for the canvas
+    Position canvasPos = {CENTER_X - SIZE * BOX_SIZE / 2, RESOLUTION_Y * 1.0 / 7.0};
+
+    int xCoord = (mouseX - canvasPos.x) / BOX_SIZE;
+    int yCoord = (mouseY - canvasPos.y) / BOX_SIZE;
+
+    short int color = drawingMode == PENCIL ? 0x0 : 0xFFFF;
+
+    for(int y = 0; y < BOX_SIZE; y++)
+        for(int x = 0; x < BOX_SIZE; x++)
+            plot_pixel(canvasPos.x + x, canvasPos.y + y, color);
+        
 } 
 
 void backButtonHover() {
@@ -483,17 +628,21 @@ void recognizeButtonNoHover() {
 }
 
 void backButtonClick() {
-
+    clearCanvas();
+    currentPage = MENU;
 }
 
 void recognizeButtonClick() {
-    /*
-        predictedNumber = predictModel(&model, drawArray);
-    */
+    double featureArray[SIZE] = {0};
+    for(int y = 0; y < CANVAS_SIZE; y++) 
+        for(int x = 0; x < CANVAS_SIZE; x++)
+            featureArray[y * CANVAS_SIZE + x] = drawArray[y][x];
+
+    displayResult(predictModel(&model, SIZE, featureArray));
 }
 
 void modeButtonClick() {
-
+    drawingMode = drawingMode == PENCIL ? ERASE : PENCIL;
 }
 
 /***************************************************
@@ -592,8 +741,8 @@ int main() {
     /* Set up page */
     currentPage = LOAD;
     switchPageCount = 0;
-    handleNumber = 0;
-    drawingMode = DRAW;
+    numOfHandles = 0;
+    drawingMode = PENCIL;
 
     /* Set up buffers */
     volatile int * pixel_ctrl_ptr = (int*)PIXEL_BUF_CTRL_BASE;
@@ -620,14 +769,24 @@ int main() {
         clear_screen();
         clear_character();
         // Handle user input via polling depending on page and changes handleNumber if event handle occured 
-        
+
         drawPage[currentPage]();
 
+        
+		
+		
+
         // Render any event handles that occured from handlePage
-        handleRender[handleNumber]();
-        
+        for(int i = 0; i < numOfHandles; i++) 
+            handleRender[handleNum[i]]();
+
+		handleNum[0] = -1;
+        handleNum[1] = -1;
+        handleNum[2] = -1;
+
+        numOfHandles = 0;
+
         handlePage[currentPage]();
-        
         wait_for_vsync(); // swap front and back buffers on VGA vertical sync
         pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
     }
