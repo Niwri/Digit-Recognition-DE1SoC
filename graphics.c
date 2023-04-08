@@ -15,14 +15,14 @@
 #define FPGA_CHAR_BASE        0xC9000000
 
 #define LEDR_BASE             0xFF200000
-#define HEX3_HEX0_BASE        ((volatile long *) 0xFF200020)
+#define HEX3_HEX0_BASE        0xFF200020
 #define HEX5_HEX4_BASE        0xFF200030
 #define SW_BASE               0xFF200040
 #define KEY_BASE              0xFF200050
 #define TIMER_BASE            0xFF202000
 #define PIXEL_BUF_CTRL_BASE   0xFF203020
 #define CHAR_BUF_CTRL_BASE    0xFF203030
-//#define MOUSE_BASE            ((volatile int *) 0xFF200100)
+#define PS2_BASE              0xFF200100
 
 #define BOX_SIZE 5
 #define SIZE 28
@@ -118,6 +118,8 @@ Model model;
 
 unsigned char seg[10] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F};
 unsigned char mousePackets[3] = {0, 0, 0}; // click = 0, x = 1, y = 2
+
+int mouseX = 0, mouseY = 0;
 
 
 /************************************************************************************
@@ -450,7 +452,7 @@ void exitButtonClick() {
 ****************************************************/
 
 void drawCanvas() {
-    
+
 } 
 
 void backButtonHover() {
@@ -459,7 +461,7 @@ void backButtonHover() {
     Position backPos = {CENTER_X - backSize.xSize * 3.0 / 2.0 + 2, RESOLUTION_Y * 9.0 / 11.0 - backSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
     drawComponent(backPos, backSize, buttonHover);
 }
-	
+
 
 void backButtonNoHover() {
     // Render back button
@@ -560,23 +562,98 @@ void displayResult(int num) {
 
 void mouseInput() {
 	
-  	volatile int * PS2_ptr = (int *) 0xFF200100;  // PS/2 port address
+  	volatile int * PS2_ptr = (int *) PS2_BASE;  // PS/2 port address
+    unsigned char packet_complete = 0;
 
+    static enum mouse_status status = NOT_REPORTING;
+    
 	int PS2_data, RVALID;
     
     PS2_data = *(PS2_ptr);	// read the Data register in the PS/2 port
-    RVALID = (PS2_data & 0x8000);	// extract the RVALID field
 
-    if (RVALID != 0) {
+    while (1) {
+        RVALID = (PS2_data & 0x8000);	// extract the RVALID field
+        if (!RVALID) break;
+
         mousePackets[0] = mousePackets[1];
         mousePackets[1] = mousePackets[2];
         mousePackets[2] = PS2_data & 0xFF;
+
+        if (mousePackets[1] == 0xAA && mousePackets[2] == 0x00) {
+            *(PS2_ptr) = 0xF4;
+            status = AWAITING_ACK;
+        }
+        else if (status == AWAITING_ACK && mousePackets[2] == 0xFA) {
+            status = REPORTING;
+            struct event_t event = {E_MOUSE_ENABLED, {.mouse_enabled = {}}};
+            event_queue_push(event, "mouse enabled");
+        }
+        continue;
+        packet_complete = (packet_complete + 1) % 3;
+
+        if (packet_complete != 0) continue;
+
+        struct mouse_state_t prev_state = mouse_state;
+        update_mouse_state(mousePackets);
+        post_mouse_events(prev_state);
     }
 
-    if ((mousePackets[1] == 0xAA) && (mousePackets[2] == 0x00)) 
-        *(PS2_ptr) = 0xF4;
+    drawCursor(x, y);
+}
+
+void update_mouse_state(char mousePackets[3]) {
+    mouse_state.left_clicked = mousePackets[0] & 0b001;
+    mouse_state.right_clicked = (mousePackets[0] & 0b010) >> 1;
+
+    struct {
+        signed short x : 9;
+        signed short y : 9;
+    } pos;
+    pos.x = (((signed short) mousePackets[0] & 0x10) << 4) | (signed short) mousePackets[1];
+    pos.y = (((signed short) mousePackets[0] & 0x20) << 3) | (signed short) mousePackets[2];
+
+    signed short dx = pos.x;
+    signed short dy = pos.y;
     
-    drawCursor(mousePackets[2], mousePackets[3]);
+    mouse_state.x += dx * MOUSE_SENSITIVITY;
+    mouse_state.y += dy * MOUSE_SENSITIVITY;
+
+    if(mouse_state.x < 0) mouse_state.x = 0;
+    else if(mouse_state.x >= RESOLUTION_X) mouse_state.x = RESOLUTION_X - 1;
+    if(mouse_state.y < 0) mouse_state.y = 0;
+    else if(mouse_state.y >= RESOLUTION_Y) mouse_state.y = RESOLUTION_Y - 1;
+}
+
+void post_mouse_events(struct mouse_state_t prev_state) {
+    struct event_t event;
+
+    struct e_mouse_move movement;
+    int moved = prev_state.x != mouse_state.x || prev_state.y != mouse_state.y;
+    movement.x = mouse_state.x * moved;
+    movement.y = mouse_state.y * moved;
+
+    if(movement.x != 0 || movement.y != 0) {
+        event.type = E_MOUSE_MOVE;
+        event.data.mouse_move = movement;
+        event_queue_push(event, "mouse move");
+    }
+
+    struct e_mouse_button button_down = {0,0,0}, button_up = {0,0,0};
+
+    (mouse_state.left_clicked ? &button_down : &button_up) -> left = prev_state.left_clicked != mouse_state.left_clicked;
+    (mouse_state.right_clicked ? &button_down : &button_up) -> right = prev_state.right_clicked != mouse_state.right_clicked;
+
+    if (button_up.left || button_up.right) {
+        event.type = E_MOUSE_BUTTON_UP;
+        event.data.mouse_button_up = button_up;
+        event_queue_push(event, "mouse button up");
+    }
+
+    if (button_down.left || button_down.right) {
+        event.type = E_MOUSE_BUTTON_DOWN;
+        event.data.mouse_button_down = button_down;
+        event_queue_push(event, "mouse button down");
+    }
 }
 
 
@@ -620,8 +697,14 @@ int main() {
         clear_screen();
         clear_character();
         // Handle user input via polling depending on page and changes handleNumber if event handle occured 
-        
-        drawPage[currentPage]();
+        handlePage[currentPage]();
+
+        // Draw the next page on back buffer. Draws again when swapped buffers.
+        if(switchPageCount < 2) {
+            clear_screen();
+            drawPage[currentPage]();
+            switchPageCount++;
+        }
 
         // Render any event handles that occured from handlePage
         handleRender[handleNumber]();
@@ -633,3 +716,6 @@ int main() {
     }
 }
 
+void displayResult(int num) {
+	HEX3_HEX0_BASE = seg[num];
+}
