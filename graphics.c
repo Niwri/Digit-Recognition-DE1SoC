@@ -234,8 +234,9 @@ void canvasRender() {
         for(int mx = 0; mx < CANVAS_SIZE; mx++)
             for(int y = 0; y < BOX_SIZE; y++) 
                 for(int x = 0; x < BOX_SIZE; x++) {
-                    short int character = 15 - (unsigned short)(drawArray[my][mx] * 15);
-					short int color = (character << 12) | (character << 8) | (character << 4) | character;
+                    short int RBcharacter = 31 - (unsigned short)(drawArray[my][mx] * 31);
+                    short int Gcharacter = 63 - (unsigned short)(drawArray[my][mx] * 63);
+					short int color = RBcharacter << 11 | (Gcharacter << 5) | RBcharacter;
                     plot_pixel(canvasPos.x + mx * BOX_SIZE + x, canvasPos.y + my * BOX_SIZE + y, color);  
                 }  
 
