@@ -4,8 +4,8 @@
 #include <math.h>
 #include <time.h>
 
-#define NUM_TEST 1000
-#define NUM_TRAIN 3000
+#define NUM_TEST 5
+#define NUM_TRAIN 20
 
 #define SIZE 784
 
@@ -19,10 +19,10 @@
 *                                                                                   *
 *************************************************************************************/
 
-#include "dataHeaders/test_image.h"
-#include "dataHeaders/test_label.h"
-#include "dataHeaders/train_image.h"
-#include "dataHeaders/train_label.h"
+#include "smallDataHeaders/test_image.h"
+#include "smallDataHeaders/test_label.h"
+#include "smallDataHeaders/train_image.h"
+#include "smallDataHeaders/train_label.h"
 
 
 /************************************************************************************
@@ -624,7 +624,7 @@ void trainModel(Model* model,
 
         printf("Test Accuracy: %f\n", testAccuracy);
 
-        learningRate /= 2;
+        //learningRate /= 2;
 
         printf("Epoch done.\n");
     }
@@ -649,7 +649,7 @@ int main() {
 
     initializeModel(&model, SIZE);
 
-    addLayer(&model, LINEAR, 50, leakReLuVector, leakReLuGradient);
+    addLayer(&model, LINEAR, 84, leakReLuVector, leakReLuGradient);
 
     addLayer(&model, LINEAR, 10, softMaxVector, softMaxGradient);
 
@@ -657,7 +657,7 @@ int main() {
 
     int batchSize = 100;
     int epochs = 13;
-    double learningRate = 0.1;
+    double learningRate = 0.05;
 
     trainModel(&model,
                 NUM_TRAIN, SIZE, train_image, train_label, 
@@ -665,14 +665,18 @@ int main() {
                 NUM_TEST, test_image, test_label);
 
     
-    int testNum = 983;
-    int i;
-    for (i=0; i<784; i++) {
-        printf("%1.1f ", test_image[testNum][i]);
-        if ((i+1) % 28 == 0) putchar('\n');
-    }
+    char temp;
+    for(int testNum = 0; testNum < NUM_TEST; testNum++) {
+        for (int i=0; i<784; i++) {
+            printf("%1.1f ", test_image[testNum][i]);
+            if ((i+1) % 28 == 0) putchar('\n');
+        }
 
-    printf("Predicted Label: %d\nTrue Label: %d\n", predictModel(&model, SIZE, test_image[testNum]), test_label[testNum]);
+        printf("Predicted Label: %d\nTrue Label: %d\n", predictModel(&model, SIZE, test_image[testNum]), test_label[testNum]);
+        printf("Continue: ");
+        scanf("%c", &temp);
+        printf("\n");
+    }
 
 
     // Free remaining vectors

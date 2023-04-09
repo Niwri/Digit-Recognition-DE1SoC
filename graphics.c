@@ -92,6 +92,8 @@ bool leftClick = false;
 int handleNum[3] = {-1, -1, -1}; 
 int numOfHandles = 0;
 
+bool loadTrain = false;
+
 /************************************************************************************
 *                                                                                   *
 *   Basic Drawing                                                                   *
@@ -304,7 +306,6 @@ void startHandle() {
         // Check if mouse clicked on train button
         if(leftClick) {
             handleNum[0] = 3;
-            leftClick = false;
         }
     } else {
         handleNum[0] = 2;
@@ -344,7 +345,7 @@ void menuHandle() {
         // Check if user clicked on draw button
         if(leftClick) {
             handleNum[0] = 9;
-            leftClick = false;
+            
         }
     } else {
         handleNum[0] = 6;
@@ -360,7 +361,6 @@ void menuHandle() {
         // Check if user clicked on exit button
         if(leftClick) {
             handleNum[1] = 10;
-            leftClick = false;
         }
     } else {
         handleNum[1] = 8;
@@ -388,7 +388,6 @@ void canvasHandle() {
     if(mouseIsInside(canvasPos.x, canvasPos.x + CANVAS_SIZE * BOX_SIZE, canvasPos.y, canvasPos.y + CANVAS_SIZE * BOX_SIZE) == true) {
         if(leftClick) {
             handleNum[0] = 11;
-            leftClick = false;
             numOfHandles++;
         }
     }
@@ -402,7 +401,6 @@ void canvasHandle() {
         // Check if user clicked on back button
         if(leftClick) {
             handleNum[numOfHandles] = 16;
-            leftClick = false;
         }
     } else {
         handleNum[numOfHandles] = 13;
@@ -418,7 +416,6 @@ void canvasHandle() {
         // Check if user clicked on predict button
         if(leftClick) {
             handleNum[numOfHandles] = 17;
-            leftClick = false;
         }
     } else {
         handleNum[numOfHandles] = 15;
@@ -442,7 +439,6 @@ void canvasHandle() {
         if(leftClick) {
             handleNum[numOfHandles] = 18;
             numOfHandles++;
-            leftClick = false;
         }
     }
     
@@ -490,6 +486,10 @@ void trainButtonClick() {
 
 void loadModel() {
     
+    if(loadTrain == false) {
+        loadTrain = true;
+        return;
+    }
     srand(time(0));
 
     Model model;
