@@ -566,12 +566,93 @@ void drawCanvasArray() {
     int xCoord = (mouseX - canvasPos.x) / BOX_SIZE;
     int yCoord = (mouseY - canvasPos.y) / BOX_SIZE;
 
-    if(xCoord < 0 || yCoord < 0) return;
+    if (xCoord < 0 || yCoord < 0) return;
 
-    if(drawingMode == PENCIL) 
+    if (drawingMode == PENCIL) {
         drawArray[yCoord][xCoord] = 1.0;
-    else
+        if (xCoord <= 27) {
+            drawArray[yCoord][xCoord + 1] += 0.5;
+            if (drawArray[yCoord][xCoord + 1] > 1) drawArray[yCoord][xCoord + 1] = 1;
+        }
+
+        if (xCoord > 0) {
+            drawArray[yCoord][xCoord - 1] += 0.5;
+            if (drawArray[yCoord][xCoord - 1] > 1) drawArray[yCoord][xCoord - 1] = 1;
+        }
+
+        if (yCoord <= 27) {
+            drawArray[yCoord + 1][xCoord] += 0.5;
+            if (drawArray[yCoord + 1][xCoord] > 1) drawArray[yCoord + 1][xCoord] = 1;
+        }
+
+        if (yCoord > 0) {
+            drawArray[yCoord - 1][xCoord] += 0.5;
+            if (drawArray[yCoord - 1][xCoord] > 1) drawArray[yCoord - 1][xCoord] = 1;
+        }
+        
+        if (xCoord <= 27 && yCoord <= 27) {
+            drawArray[yCoord + 1][xCoord + 1] += 0.5;
+            if (drawArray[yCoord + 1][xCoord + 1] > 1) drawArray[yCoord + 1][xCoord + 1] = 1;
+        }
+        
+        if (xCoord > 0 && yCoord > 0) {
+            drawArray[yCoord - 1][xCoord - 1] += 0.5;
+            if (drawArray[yCoord - 1][xCoord - 1] > 1) drawArray[yCoord - 1][xCoord - 1] = 1;
+        }
+
+        if (xCoord <= 27 && yCoord > 0) {
+            drawArray[yCoord - 1][xCoord + 1] += 0.5;
+            if (drawArray[yCoord - 1][xCoord + 1] > 1) drawArray[yCoord - 1][xCoord + 1] = 1;
+        }
+        
+        if (xCoord > 0 && yCoord <= 27) {
+            drawArray[yCoord + 1][xCoord - 1] += 0.5;
+            if (drawArray[yCoord + 1][xCoord - 1] > 1) drawArray[yCoord + 1][xCoord - 1] = 1;
+        }
+    
+    }
+    else {
         drawArray[yCoord][xCoord] = 0.0;
+        if (xCoord <= 27) {
+            drawArray[yCoord][xCoord + 1] -= 0.5;
+            if (drawArray[yCoord][xCoord + 1] < 0) drawArray[yCoord][xCoord + 1] = 0;
+        }
+
+        if (xCoord > 0) {
+            drawArray[yCoord][xCoord - 1] -= 0.5;
+            if (drawArray[yCoord][xCoord - 1] < 0) drawArray[yCoord][xCoord - 1] = 0;
+        }
+
+        if (yCoord <= 27) {
+            drawArray[yCoord + 1][xCoord] -= 0.5;
+            if (drawArray[yCoord + 1][xCoord] < 0) drawArray[yCoord + 1][xCoord] = 0;
+        }
+
+        if (yCoord > 0) {
+            drawArray[yCoord - 1][xCoord] -= 0.5;
+            if (drawArray[yCoord - 1][xCoord] < 0) drawArray[yCoord - 1][xCoord] = 0;
+        }
+        
+        if (xCoord <= 27 && yCoord <= 27) {
+            drawArray[yCoord + 1][xCoord + 1] -= 0.5;
+            if (drawArray[yCoord + 1][xCoord + 1] < 0) drawArray[yCoord + 1][xCoord + 1] = 0;
+        }
+        
+        if (xCoord > 0 && yCoord > 0) {
+            drawArray[yCoord - 1][xCoord - 1] -= 0.5;
+            if (drawArray[yCoord - 1][xCoord - 1] < 0) drawArray[yCoord - 1][xCoord - 1] = 0;
+        }
+
+        if (xCoord <= 27 && yCoord > 0) {
+            drawArray[yCoord - 1][xCoord + 1] -= 0.5;
+            if (drawArray[yCoord - 1][xCoord + 1] < 0) drawArray[yCoord - 1][xCoord + 1] = 0;
+        }
+        
+        if (xCoord > 0 && yCoord <= 27) {
+            drawArray[yCoord + 1][xCoord - 1] -= 0.5;
+            if (drawArray[yCoord + 1][xCoord - 1] < 0) drawArray[yCoord + 1][xCoord - 1] = 0;
+        }
+    }
         
 } 
 
