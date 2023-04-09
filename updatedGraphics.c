@@ -727,8 +727,7 @@ int main() {
     printf("\nEnd.");
 
     return 0;
-}
-*/
+}*/
 
 /************************************************************************************
 *                                                                                   *
@@ -1355,12 +1354,93 @@ void drawCanvasArray() {
     int xCoord = (mouseX - canvasPos.x) / BOX_SIZE;
     int yCoord = (mouseY - canvasPos.y) / BOX_SIZE;
 
-    if(xCoord < 0 || yCoord < 0) return;
+    if (xCoord < 0 || yCoord < 0) return;
 
-    if(drawingMode == PENCIL) 
+    if (drawingMode == PENCIL) {
         drawArray[yCoord][xCoord] = 1.0;
-    else
+        if (xCoord < 27) {
+            drawArray[yCoord][xCoord + 1] += 0.5;
+            if (drawArray[yCoord][xCoord + 1] > 1) drawArray[yCoord][xCoord + 1] = 1;
+        }
+
+        if (xCoord > 0) {
+            drawArray[yCoord][xCoord - 1] += 0.5;
+            if (drawArray[yCoord][xCoord - 1] > 1) drawArray[yCoord][xCoord - 1] = 1;
+        }
+
+        if (yCoord < 27) {
+            drawArray[yCoord + 1][xCoord] += 0.5;
+            if (drawArray[yCoord + 1][xCoord] > 1) drawArray[yCoord + 1][xCoord] = 1;
+        }
+
+        if (yCoord > 0) {
+            drawArray[yCoord - 1][xCoord] += 0.5;
+            if (drawArray[yCoord - 1][xCoord] > 1) drawArray[yCoord - 1][xCoord] = 1;
+        }
+        
+        if (xCoord < 27 && yCoord < 27) {
+            drawArray[yCoord + 1][xCoord + 1] += 0.5;
+            if (drawArray[yCoord + 1][xCoord + 1] > 1) drawArray[yCoord + 1][xCoord + 1] = 1;
+        }
+        
+        if (xCoord > 0 && yCoord > 0) {
+            drawArray[yCoord - 1][xCoord - 1] += 0.5;
+            if (drawArray[yCoord - 1][xCoord - 1] > 1) drawArray[yCoord - 1][xCoord - 1] = 1;
+        }
+
+        if (xCoord < 27 && yCoord > 0) {
+            drawArray[yCoord - 1][xCoord + 1] += 0.5;
+            if (drawArray[yCoord - 1][xCoord + 1] > 1) drawArray[yCoord - 1][xCoord + 1] = 1;
+        }
+        
+        if (xCoord > 0 && yCoord < 27) {
+            drawArray[yCoord + 1][xCoord - 1] += 0.5;
+            if (drawArray[yCoord + 1][xCoord - 1] > 1) drawArray[yCoord + 1][xCoord - 1] = 1;
+        }
+    
+    }
+    else {
         drawArray[yCoord][xCoord] = 0.0;
+        if (xCoord < 27) {
+            drawArray[yCoord][xCoord + 1] -= 0.5;
+            if (drawArray[yCoord][xCoord + 1] < 0) drawArray[yCoord][xCoord + 1] = 0;
+        }
+
+        if (xCoord > 0) {
+            drawArray[yCoord][xCoord - 1] -= 0.5;
+            if (drawArray[yCoord][xCoord - 1] < 0) drawArray[yCoord][xCoord - 1] = 0;
+        }
+
+        if (yCoord < 27) {
+            drawArray[yCoord + 1][xCoord] -= 0.5;
+            if (drawArray[yCoord + 1][xCoord] < 0) drawArray[yCoord + 1][xCoord] = 0;
+        }
+
+        if (yCoord > 0) {
+            drawArray[yCoord - 1][xCoord] -= 0.5;
+            if (drawArray[yCoord - 1][xCoord] < 0) drawArray[yCoord - 1][xCoord] = 0;
+        }
+        
+        if (xCoord < 27 && yCoord < 27) {
+            drawArray[yCoord + 1][xCoord + 1] -= 0.5;
+            if (drawArray[yCoord + 1][xCoord + 1] < 0) drawArray[yCoord + 1][xCoord + 1] = 0;
+        }
+        
+        if (xCoord > 0 && yCoord > 0) {
+            drawArray[yCoord - 1][xCoord - 1] -= 0.5;
+            if (drawArray[yCoord - 1][xCoord - 1] < 0) drawArray[yCoord - 1][xCoord - 1] = 0;
+        }
+
+        if (xCoord < 27 && yCoord > 0) {
+            drawArray[yCoord - 1][xCoord + 1] -= 0.5;
+            if (drawArray[yCoord - 1][xCoord + 1] < 0) drawArray[yCoord - 1][xCoord + 1] = 0;
+        }
+        
+        if (xCoord > 0 && yCoord < 27) {
+            drawArray[yCoord + 1][xCoord - 1] -= 0.5;
+            if (drawArray[yCoord + 1][xCoord - 1] < 0) drawArray[yCoord + 1][xCoord - 1] = 0;
+        }
+    }
         
 } 
 
@@ -1491,13 +1571,14 @@ void mouseInput() {
         mousePackets[1] = mousePackets[2];
         mousePackets[2] = PS2_data & 0xFF;
 
-        if(mousePackets[1] == 0xAA && mousePackets[2] == 0x00) {
+        if(currentStatus != REPORTING && mousePackets[1] == 0xAA && mousePackets[2] == 0x00) {
             currentStatus = WAIT_ACKNOWLEDGE;
             *(PS2_ptr) = 0xF4;
         } 
 
         if(currentStatus == WAIT_ACKNOWLEDGE && mousePackets[2] == 0xFA) {
             currentStatus = REPORTING;
+			continue;
         }
 
         numOfPackets++;
@@ -1576,6 +1657,11 @@ void enable_A9_interrupts(void) {
     asm("msr cpsr, %[ps]" : : [ps] "r"(status));
 }
 
+void disable_A9_interrupts(void) {
+    int status = 0b11010011;
+    asm("msr cpsr, %[ps]" : : [ps] "r"(status));
+}
+
 void config_interrupt(int N, int CPU_target) {
     int reg_offset, index, value, address;
     /* Configure the Interrupt Set-Enable Registers (ICDISERn).
@@ -1626,20 +1712,25 @@ void __attribute__((interrupt)) __cs3_isr_irq(void)
 // Define the remaining exception handlers
 void __attribute__((interrupt)) __cs3_reset(void)
 {
-while (1)
-;
+while (1);
 }
 void __attribute__((interrupt)) __cs3_isr_undef(void)
 {
-while (1)
-;
+while (1);
 }
 void __attribute__((interrupt)) __cs3_isr_swi(void)
 {
-while (1)
-;
+while (1);
 }
 void __attribute__((interrupt)) __cs3_isr_pabort(void)
+{
+while (1);
+}
+void __attribute__((interrupt)) __cs3_isr_dabort(void)
+{
+while (1);
+}
+void __attribute__((interrupt)) __cs3_isr_fiq(void)
 {
 while (1);
 }
@@ -1653,6 +1744,7 @@ while (1);
 
 
 int main() {
+    disable_A9_interrupts();
     set_A9_IRQ_stack();
     config_GIC();
     config_PS2();
