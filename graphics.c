@@ -42,6 +42,7 @@
 #define SENSITIVITY 0.25
 
 #include "updatedMain.h"
+#include "graphics.h"
 
 /************************************************************************************
 *                                                                                   *
@@ -64,54 +65,6 @@
 // Cursor Icon
 #include "graphicHeaders/cursor.h"
 
-/************************************************************************************
-*                                                                                   *
-*   Enums                                                                           *
-*                                                                                   *
-*************************************************************************************/
-
-typedef enum {
-    START = 0,
-    LOAD = 1,
-    MENU = 2,
-    CANVAS = 3
-} Page;
-
-typedef enum {
-    true = 1,
-    false = 0
-} bool;
-
-typedef enum {
-    NONE = 0,
-    HIGHLIGHT_TRAIN = 1,
-    HIGHLIGHT_DRAW = 2,
-    DRAW = 3,
-} Handle;
-
-typedef enum {
-    PENCIL,
-    ERASE
-} Mode;
-
-typedef enum {
-    WAIT_ACKNOWLEDGE,
-    REPORTING,
-} Status;
-
-typedef void (*page_draw_ptr)();
-typedef void (*page_handle_ptr)();
-typedef void (*handle_draw_ptr)();
-
-typedef struct {
-    int x;
-    int y;
-} Position;
-
-typedef struct {
-    int ySize;
-    int xSize;
-} Size;
 
 /************************************************************************************
 *                                                                                   *
@@ -776,15 +729,15 @@ void mouseInput() {
         mouseX += signedPos.x;
         mouseY += signedPos.y;
         
-        if(mouseX > BORDER_RIGHT-9)
-            mouseX = BORDER_RIGHT-9;
+        if(mouseX > BORDER_RIGHT - 9)
+            mouseX = BORDER_RIGHT - 9;
         if(mouseY > BORDER_BOTTOM)
             mouseY = BORDER_BOTTOM;
 
         if(mouseX < BORDER_LEFT)
             mouseX = BORDER_LEFT;
-        if(mouseY < BORDER_TOP+9)
-            mouseY = BORDER_TOP+9;
+        if(mouseY < BORDER_TOP + 9)
+            mouseY = BORDER_TOP + 9;
 
         leftClick = mousePackets[0] & 0b1;
 
@@ -923,7 +876,7 @@ int main() {
     drawingMode = PENCIL;
 
     /* Set up buffers */
-    volatile int * pixel_ctrl_ptr = (int*)PIXEL_BUF_CTRL_BASE;
+    volatile int * pixel_ctrl_ptr = (int*) PIXEL_BUF_CTRL_BASE;
     
     clear_character();
 
