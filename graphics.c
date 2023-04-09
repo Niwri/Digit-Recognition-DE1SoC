@@ -15,14 +15,20 @@
 #define FPGA_CHAR_BASE        0xC9000000
 
 #define LEDR_BASE             0xFF200000
-#define HEX3_HEX0_BASE        ((volatile long *) 0xFF200020)
+#define HEX3_HEX0_BASE        (volatile long*) 0xFF200020
 #define HEX5_HEX4_BASE        0xFF200030
 #define SW_BASE               0xFF200040
 #define KEY_BASE              0xFF200050
 #define TIMER_BASE            0xFF202000
 #define PIXEL_BUF_CTRL_BASE   0xFF203020
 #define CHAR_BUF_CTRL_BASE    0xFF203030
-//#define MOUSE_BASE            ((volatile int *) 0xFF200100)
+#define PS2_BASE              0xFF200100
+
+#define PS2_IRQ               79
+
+#define MPCORE_GIC_CPUIF       
+#define ICCEOIR                0xFFFEC110
+#define ICCIAR                 0xFFFEC10C
 
 #define BOX_SIZE 5
 #define CANVAS_SIZE 28
@@ -32,6 +38,8 @@
 
 #define BORDER_TOP 16
 #define BORDER_BOTTOM 222
+
+#define SENSITIVITY 0.25
 
 #include "updatedMain.h"
 
@@ -86,6 +94,11 @@ typedef enum {
     ERASE
 } Mode;
 
+typedef enum {
+    WAIT_ACKNOWLEDGE,
+    REPORTING,
+} Status;
+
 typedef void (*page_draw_ptr)();
 typedef void (*page_handle_ptr)();
 typedef void (*handle_draw_ptr)();
@@ -112,14 +125,14 @@ Mode drawingMode;
 int predictedNumber;
 Page currentPage;
 
-double drawArray[SIZE][SIZE];
+double drawArray[CANVAS_SIZE][CANVAS_SIZE];
 Model model;
 
 unsigned char seg[10] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F};
 
 // To keep track of mouse movements and events
 unsigned char mousePackets[3] = {0, 0, 0}; // click = 0, x = 1, y = 2
-int mouseX = 0, mouseY = 0;
+int mouseX = BORDER_LEFT, mouseY = BORDER_TOP+9;
 bool leftClick = false;
 
 // To store every handle event to process 
@@ -148,8 +161,11 @@ void plot_pixel(int x, int y, short int line_color) {
 *                                                                                   *
 *************************************************************************************/
 
-bool mouseIsInside(int minX, int minY, int maxX, int maxY) {
-    return (minX <= mouseX && mouseX <= maxX && minY <= mouseY && mouseY <= maxY) == 1 ? true : false;
+bool mouseIsInside(int minX, int maxX, int minY, int maxY) {
+    if(minX <= mouseX && mouseX <= maxX && minY <= mouseY && mouseY <= maxY) 
+        return true;
+	
+    return false;
 }
 
 /************************************************************************************
@@ -176,15 +192,17 @@ void writeText(Position pos, char* text) {
     }
 }
 
-void drawCursor(int x, int y) {
+void drawCursor(int mx, int my) {
     Size cursorSize = {sizeof(cursor) / sizeof(cursor[0]), sizeof(cursor[0]) / sizeof(cursor[0][0])};
-    Position cursorPos = {x, y};
-    drawComponent(cursorPos, cursorSize, cursor);
+    for(int y = 0; y < cursorSize.ySize; y++)
+        for(int x = 0; x < cursorSize.xSize; x++)
+            if(cursor[y][x] != 0x0)
+                plot_pixel(mx + x, my - cursorSize.ySize + y, cursor[y][x]);
 }
 
 void clearCanvas() {
-    for(int i = 0; i < SIZE; i++)
-        for(int j = 0; j < SIZE; j++)
+    for(int i = 0; i < CANVAS_SIZE; i++)
+        for(int j = 0; j < CANVAS_SIZE; j++)
             drawArray[i][j] = 0;
 }
 
@@ -256,9 +274,15 @@ void canvasRender() {
 
     // Draw the white background for the canvas
     Position canvasPos = {CENTER_X - CANVAS_SIZE * BOX_SIZE / 2, RESOLUTION_Y * 1.0 / 7.0};
-    for(int y = 0; y < CANVAS_SIZE * BOX_SIZE; y++) 
-        for(int x = 0; x < CANVAS_SIZE * BOX_SIZE; x++) 
-            plot_pixel(canvasPos.x + x, canvasPos.y + y, 0xFFFF);    
+	
+	for(int my = 0; my < CANVAS_SIZE; my++)
+        for(int mx = 0; mx < CANVAS_SIZE; mx++)
+            for(int y = 0; y < BOX_SIZE; y++) 
+                for(int x = 0; x < BOX_SIZE; x++) {
+                    short int character = 15 - (unsigned short)(drawArray[my][mx] * 15);
+					short int color = (character << 12) | (character << 8) | (character << 4) | character;
+                    plot_pixel(canvasPos.x + mx * BOX_SIZE + x, canvasPos.y + my * BOX_SIZE + y, color);  
+                }  
 
     // Render back button
     Size backSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
@@ -321,10 +345,9 @@ void startHandle() {
     Size buttonSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
     Position buttonPos = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
 
-    if(mouseIsInside(buttonPos.x, buttonPos.x + buttonSize.xSize, buttonPos.y, buttonPos.y + buttonSize.ySize)) {
+    if(mouseIsInside(buttonPos.x, buttonPos.x + buttonSize.xSize, buttonPos.y, buttonPos.y + buttonSize.ySize) == true) {
         
         handleNum[0] = 1;
-
         // Check if mouse clicked on train button
         if(leftClick) {
             handleNum[0] = 3;
@@ -362,7 +385,7 @@ void menuHandle() {
     Size drawSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
     Position drawPos = {CENTER_X - drawSize.xSize/2, RESOLUTION_Y * 1.0 / 2.0 - drawSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
 
-    if(mouseIsInside(drawPos.x, drawPos.x + drawSize.xSize, drawPos.y, drawPos.y + drawSize.ySize)) {
+    if(mouseIsInside(drawPos.x, drawPos.x + drawSize.xSize, drawPos.y, drawPos.y + drawSize.ySize) == true) {
         handleNum[0] = 5;
 
         // Check if user clicked on draw button
@@ -378,7 +401,7 @@ void menuHandle() {
     Size exitSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
     Position exitPos = {CENTER_X - exitSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - exitSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
 
-    if(mouseIsInside(exitPos.x, exitPos.x + exitSize.xSize, exitPos.y, exitPos.y + exitSize.ySize)) {
+    if(mouseIsInside(exitPos.x, exitPos.x + exitSize.xSize, exitPos.y, exitPos.y + exitSize.ySize) == true) {
         handleNum[1] = 7;
 
         // Check if user clicked on exit button
@@ -409,7 +432,7 @@ void canvasHandle() {
     // Check if mouse left-clicked in canvas for drawing
     Position canvasPos = {CENTER_X - CANVAS_SIZE * BOX_SIZE / 2, RESOLUTION_Y * 1.0 / 7.0};
 
-    if(mouseIsInside(canvasPos.x, canvasPos.x + CANVAS_SIZE * BOX_SIZE, canvasPos.y, canvasPos.y + CANVAS_SIZE * BOX_SIZE)) {
+    if(mouseIsInside(canvasPos.x, canvasPos.x + CANVAS_SIZE * BOX_SIZE, canvasPos.y, canvasPos.y + CANVAS_SIZE * BOX_SIZE) == true) {
         if(leftClick) {
             handleNum[0] = 11;
             leftClick = false;
@@ -420,7 +443,7 @@ void canvasHandle() {
     // Check if user is hovering over back button
     Size backSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
     Position backPos = {CENTER_X - backSize.xSize * 3.0 / 2.0 + 2, RESOLUTION_Y * 9.0 / 11.0 - backSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
-    if(mouseIsInside(backPos.x, backPos.x + backSize.xSize, backPos.y, backPos.y + backSize.ySize)) {
+    if(mouseIsInside(backPos.x, backPos.x + backSize.xSize, backPos.y, backPos.y + backSize.ySize) == true) {
         handleNum[numOfHandles] = 12;
 
         // Check if user clicked on back button
@@ -436,7 +459,7 @@ void canvasHandle() {
 	// Check if user is hovering over predict button
     Size predictSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
     Position predictPos = {CENTER_X + predictSize.xSize * 1.0 / 2.0 - 2, RESOLUTION_Y * 9.0 / 11.0 - predictSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
-    if(mouseIsInside(predictPos.x, predictPos.x + predictSize.xSize, predictPos.y, predictPos.y + predictSize.ySize)) {
+    if(mouseIsInside(predictPos.x, predictPos.x + predictSize.xSize, predictPos.y, predictPos.y + predictSize.ySize) == true) {
         handleNum[numOfHandles] = 14;
 
         // Check if user clicked on predict button
@@ -462,7 +485,7 @@ void canvasHandle() {
     
     Position modePos = {CENTER_X - modeSize.xSize / 2, RESOLUTION_Y * 9.0 / 11.0 - modeSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
 
-    if(mouseIsInside(modePos.x, modePos.x + modeSize.xSize, modePos.y, modePos.y + modeSize.ySize)) {
+    if(mouseIsInside(modePos.x, modePos.x + modeSize.xSize, modePos.y, modePos.y + modeSize.ySize) == true) {
         if(leftClick) {
             handleNum[numOfHandles] = 18;
             numOfHandles++;
@@ -583,18 +606,19 @@ void exitButtonClick() {
 *   Canvas Handles                                 *
 ****************************************************/
 
-void drawCanvas() {
+void drawCanvasArray() {
     // Draw the white background for the canvas
-    Position canvasPos = {CENTER_X - SIZE * BOX_SIZE / 2, RESOLUTION_Y * 1.0 / 7.0};
+    Position canvasPos = {CENTER_X - CANVAS_SIZE * BOX_SIZE / 2, RESOLUTION_Y * 1.0 / 7.0};
 
     int xCoord = (mouseX - canvasPos.x) / BOX_SIZE;
     int yCoord = (mouseY - canvasPos.y) / BOX_SIZE;
 
-    short int color = drawingMode == PENCIL ? 0x0 : 0xFFFF;
+    if(xCoord < 0 || yCoord < 0) return;
 
-    for(int y = 0; y < BOX_SIZE; y++)
-        for(int x = 0; x < BOX_SIZE; x++)
-            plot_pixel(canvasPos.x + x, canvasPos.y + y, color);
+    if(drawingMode == PENCIL) 
+        drawArray[xCoord][yCoord] = 1.0;
+    else
+        drawArray[xCoord][yCoord] = 0.0;
         
 } 
 
@@ -604,7 +628,7 @@ void backButtonHover() {
     Position backPos = {CENTER_X - backSize.xSize * 3.0 / 2.0 + 2, RESOLUTION_Y * 9.0 / 11.0 - backSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
     drawComponent(backPos, backSize, buttonHover);
 }
-	
+
 
 void backButtonNoHover() {
     // Render back button
@@ -653,7 +677,7 @@ handle_draw_ptr handleRender[] = {noHandle,
                                   trainButtonHover, trainButtonNoHover, trainButtonClick, 
                                   loadModel,
                                   drawButtonHover, drawButtonNoHover, exitButtonHover, exitButtonNoHover, drawButtonClick, exitButtonClick, 
-                                  drawCanvas, backButtonHover, backButtonNoHover, recognizeButtonHover, recognizeButtonNoHover,
+                                  drawCanvasArray, backButtonHover, backButtonNoHover, recognizeButtonHover, recognizeButtonNoHover,
                                   backButtonClick, recognizeButtonClick, modeButtonClick};
 
 /************************************************************************************
@@ -708,24 +732,176 @@ void displayResult(int num) {
 *************************************************************************************/
 
 void mouseInput() {
-	
-  	volatile int * PS2_ptr = (int *) 0xFF200100;  // PS/2 port address
+    volatile int * PS2_ptr = (int *) PS2_BASE;
+    unsigned char packet_complete = 0;
+    int PS2_data, RVALID;
 
-	int PS2_data, RVALID;
-    
-    PS2_data = *(PS2_ptr);	// read the Data register in the PS/2 port
-    RVALID = (PS2_data & 0x8000);	// extract the RVALID field
+    Status currentStatus;
 
-    if (RVALID != 0) {
+    int numOfPackets = 1;
+
+    while (1) {
+        PS2_data = *(PS2_ptr);
+        RVALID = (PS2_data & 0x8000);
+        if (!RVALID) break;
+
         mousePackets[0] = mousePackets[1];
         mousePackets[1] = mousePackets[2];
         mousePackets[2] = PS2_data & 0xFF;
-    }
 
-    if ((mousePackets[1] == 0xAA) && (mousePackets[2] == 0x00)) 
-        *(PS2_ptr) = 0xF4;
-    
-    drawCursor(mousePackets[2], mousePackets[3]);
+        if(mousePackets[1] == 0xAA && mousePackets[2] == 0x00) {
+            currentStatus = WAIT_ACKNOWLEDGE;
+            *(PS2_ptr) = 0xF4;
+        } 
+
+        if(currentStatus == WAIT_ACKNOWLEDGE && mousePackets[2] == 0xFA) {
+            currentStatus = REPORTING;
+        }
+
+        numOfPackets++;
+
+        if(numOfPackets % 4 != 0) continue;
+
+        numOfPackets = 1;
+        
+        struct {
+            signed int x : 9;
+            signed int y : 9;
+        } signedPos;
+
+        signedPos.x = ((mousePackets[0] & 0b10000) << 4) | (mousePackets[1]);
+        signedPos.y = ((mousePackets[0] & 0b100000) << 3) | (mousePackets[2]);
+
+
+        mouseX += signedPos.x;
+        mouseY += signedPos.y;
+
+        printf("%d %d\n", signedPos.x, signedPos.y);
+        
+        if(mouseX > BORDER_RIGHT-9)
+            mouseX = BORDER_RIGHT-9;
+        if(mouseY > BORDER_BOTTOM)
+            mouseY = BORDER_BOTTOM;
+
+        if(mouseX < BORDER_LEFT)
+            mouseX = BORDER_LEFT;
+        if(mouseY < BORDER_TOP+9)
+            mouseY = BORDER_TOP+9;
+
+        leftClick = mousePackets[0] & 0b1;
+
+    }
+}
+
+
+/************************************************************************************
+*                                                                                   *
+*   Interrupt Configurations                                                        *
+*                                                                                   *
+*************************************************************************************/
+
+void config_GIC(void) {
+    config_interrupt (79, 1); // configure the FPGA KEYs interrupt (73)
+    // Set Interrupt Priority Mask Register (ICCPMR). Enable interrupts of all
+    // priorities
+    *((int *) 0xFFFEC104) = 0xFFFF;
+    // Set CPU Interface Control Register (ICCICR). Enable signaling of
+    // interrupts
+    *((int *) 0xFFFEC100) = 1;
+    // Configure the Distributor Control Register (ICDDCR) to send pending
+    // interrupts to CPUs
+    *((int *) 0xFFFED000) = 1;
+}
+
+void config_PS2(void) {
+    *((int*)0xFF200104) = 1;
+}
+
+void set_A9_IRQ_stack(void) {
+    int stack, mode;
+    stack = 0xFFFFFFFF - 7; // top of A9 onchip memory, aligned to 8 bytes
+    /* change processor to IRQ mode with interrupts disabled */
+    mode = 0b11010010;
+    asm("msr cpsr, %[ps]" : : [ps] "r"(mode));
+    /* set banked stack pointer */
+    asm("mov sp, %[ps]" : : [ps] "r"(stack));
+    /* go back to SVC mode before executing subroutine return! */
+    mode =  0b11010011;
+
+    asm("msr cpsr, %[ps]" : : [ps] "r"(mode));
+}
+
+void enable_A9_interrupts(void) {
+    int status =  0b01010011;
+    asm("msr cpsr, %[ps]" : : [ps] "r"(status));
+}
+
+void config_interrupt(int N, int CPU_target) {
+    int reg_offset, index, value, address;
+    /* Configure the Interrupt Set-Enable Registers (ICDISERn).
+    * reg_offset = (integer_div(N / 32) * 4
+    * value = 1 << (N mod 32) */
+    reg_offset = (N >> 3) & 0xFFFFFFFC;
+    index = N & 0x1F;
+    value = 0x1 << index;
+    address = 0xFFFED100 + reg_offset;
+    /* Now that we know the register address and value, set the appropriate bit */
+    *(int *)address |= value;
+    /* Configure the Interrupt Processor Targets Register (ICDIPTRn)
+    * reg_offset = integer_div(N / 4) * 4
+    * index = N mod 4 */
+    reg_offset = (N & 0xFFFFFFFC);
+    index = N & 0x3;
+    address = 0xFFFED800 + reg_offset + index;
+    /* Now that we know the register address and value, write to (only) the
+    * appropriate byte */
+    *(char *)address = (char)CPU_target;
+}
+
+
+/************************************************************************************
+*                                                                                   *
+*   Interrupt Handler FUnctions                                                     *
+*                                                                                   *
+*************************************************************************************/
+
+// Define the IRQ exception handler
+void __attribute__((interrupt)) __cs3_isr_irq(void)
+{
+    // Read the ICCIAR from the processor interface
+    int address = ICCIAR;
+    int int_ID = *((int *)address);
+
+    if (int_ID == PS2_IRQ) // check if interrupt is from the HPS timer
+        mouseInput();
+    else
+        while (1); // if unexpected, then stay here
+
+    // Write to the End of Interrupt Register (ICCEOIR)
+    address = ICCEOIR;
+    *((int *)address) = int_ID;
+    return;
+}
+
+// Define the remaining exception handlers
+void __attribute__((interrupt)) __cs3_reset(void)
+{
+while (1)
+;
+}
+void __attribute__((interrupt)) __cs3_isr_undef(void)
+{
+while (1)
+;
+}
+void __attribute__((interrupt)) __cs3_isr_swi(void)
+{
+while (1)
+;
+}
+void __attribute__((interrupt)) __cs3_isr_pabort(void)
+{
+while (1);
 }
 
 
@@ -737,9 +913,13 @@ void mouseInput() {
 
 
 int main() {
+    set_A9_IRQ_stack();
+    config_GIC();
+    config_PS2();
+    enable_A9_interrupts();
 
     /* Set up page */
-    currentPage = LOAD;
+    currentPage = START;
     switchPageCount = 0;
     numOfHandles = 0;
     drawingMode = PENCIL;
@@ -772,13 +952,11 @@ int main() {
 
         drawPage[currentPage]();
 
-        
-		
-		
-
         // Render any event handles that occured from handlePage
         for(int i = 0; i < numOfHandles; i++) 
             handleRender[handleNum[i]]();
+
+        drawCursor(mouseX, mouseY);
 
 		handleNum[0] = -1;
         handleNum[1] = -1;
@@ -791,4 +969,3 @@ int main() {
         pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
     }
 }
-

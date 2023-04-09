@@ -89,7 +89,8 @@
     "typeinfo": "c",
     "test_image.h": "c",
     "test_label.h": "c",
-    "train_label.h": "c"
+    "train_label.h": "c",
+    "train_image.h": "c"
   },
   "C_Cpp.errorSquiggles": "disabled"
 }
