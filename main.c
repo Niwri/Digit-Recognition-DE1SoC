@@ -640,7 +640,7 @@ void trainModel(Model* model,
 *   MAIN FUNCTION                                                                   *
 *                                                                                   *
 *************************************************************************************/
-
+/*
 int main() {
 
     srand(time(0));
@@ -681,3 +681,4 @@ int main() {
 
     return 0;
 }
+*/

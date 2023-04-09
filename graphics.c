@@ -616,9 +616,9 @@ void drawCanvasArray() {
     if(xCoord < 0 || yCoord < 0) return;
 
     if(drawingMode == PENCIL) 
-        drawArray[xCoord][yCoord] = 1.0;
+        drawArray[yCoord][xCoord] = 1.0;
     else
-        drawArray[xCoord][yCoord] = 0.0;
+        drawArray[yCoord][xCoord] = 0.0;
         
 } 
 
@@ -775,8 +775,6 @@ void mouseInput() {
 
         mouseX += signedPos.x;
         mouseY += signedPos.y;
-
-        printf("%d %d\n", signedPos.x, signedPos.y);
         
         if(mouseX > BORDER_RIGHT-9)
             mouseX = BORDER_RIGHT-9;
