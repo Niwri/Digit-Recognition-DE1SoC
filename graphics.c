@@ -109,6 +109,11 @@ bool canvasDraw = false;
 
 Position canvasDrawPosition;
 
+int canvasDrawSecondCount = 0;
+bool canvasDrawSecond = false;
+
+Position canvasDrawSecondPosition;
+
 /************************************************************************************
 *                                                                                   *
 *   Basic Drawing                                                                   *
@@ -218,6 +223,12 @@ void clearCanvas() {
             drawArray[i][j] = 0;
 }
 
+void clearArea(Position pos, Size size, short int color) {
+    for(int y = 0; y < size.ySize; y++)
+        for(int x = 0; x < size.xSize; x++)
+                plot_pixel(pos.x + x, pos.y + y, color);
+}
+
 /************************************************************************************
 *                                                                                   *
 *   Page Rendering                                                                  *
@@ -299,6 +310,29 @@ void canvasRender() {
         } else canvasReadyCount++;
          
     }
+
+    // If user drew in previous frame, update canvas at where it was drawn for both buffers for good measure 
+    if(canvasDrawSecond == true) {
+        int minX = canvasDrawSecondPosition.x-1 >= 0 ? canvasDrawSecondPosition.x-1 : 0;
+        int minY = canvasDrawSecondPosition.y-1 >= 0 ? canvasDrawSecondPosition.y-1 : 0;
+        int maxX = canvasDrawSecondPosition.x+1 <= 27 ? canvasDrawSecondPosition.x+1 : 27;
+        int maxY = canvasDrawSecondPosition.y+1 <= 27 ? canvasDrawSecondPosition.y+1 : 27;
+
+        for(int my = minY; my < maxY+1; my++)
+            for(int mx = minX; mx < maxX+1; mx++)
+                for(int y = 0; y < BOX_SIZE; y++) 
+                    for(int x = 0; x < BOX_SIZE; x++) {
+                        short int RBcharacter = 31 - (unsigned short)(drawArray[my][mx] * 31);
+                        short int Gcharacter = 63 - (unsigned short)(drawArray[my][mx] * 63);
+                        short int color = RBcharacter << 11 | (Gcharacter << 5) | RBcharacter;
+                        plot_pixel(canvasPos.x + mx * BOX_SIZE + x, canvasPos.y + my * BOX_SIZE + y, color);  
+                    } 
+        
+        if(canvasDrawSecondCount >= 2) {
+            canvasDrawSecond = false;
+            canvasDrawSecondCount = 0;
+        } else canvasDrawSecondCount++;
+    }
     
     // If user drew, update canvas at where it was drawn for both buffers
     if(canvasDraw == true) {
@@ -321,7 +355,17 @@ void canvasRender() {
             canvasDraw = false;
             canvasDrawCount = 0;
         } else canvasDrawCount++;
+
+        if(canvasDrawCount == 1)  {
+            canvasDrawSecond = true;
+            canvasDrawSecondPosition.x = canvasDrawPosition.x;
+            canvasDrawSecondPosition.y = canvasDrawPosition.y;
+        }
     }
+
+    
+
+
 
     // Render back button
     Size backSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
@@ -356,7 +400,7 @@ void canvasRender() {
     }
     
     Position modePos = {CENTER_X - modeSize.xSize / 2, RESOLUTION_Y * 9.0 / 11.0 - modeSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
-
+    clearArea(modePos, modeSize, 0xFFFF);
     if(drawingMode == PENCIL)
         drawComponent(modePos, modeSize, pencil);
     else if(drawingMode == ERASE) 
