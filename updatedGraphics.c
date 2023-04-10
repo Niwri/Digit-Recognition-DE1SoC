@@ -1126,7 +1126,6 @@ void canvasRender() {
         
         if(canvasDrawThirdCount >= 2) {
             canvasDrawThird = false;
-            canvasDrawThirdCount = 0;
         } else canvasDrawThirdCount++;
     }
 
@@ -1149,11 +1148,11 @@ void canvasRender() {
         
         if(canvasDrawSecondCount >= 2) {
             canvasDrawSecond = false;
-            canvasDrawSecondCount = 0;
         } else canvasDrawSecondCount++;
 
         if(canvasDrawSecondCount == 1) {
             canvasDrawThird = true;
+            canvasDrawThirdCount = 0;
             canvasDrawThirdPosition.x = canvasDrawSecondPosition.x;
             canvasDrawThirdPosition.y = canvasDrawSecondPosition.y;
         }
@@ -1178,11 +1177,11 @@ void canvasRender() {
         
         if(canvasDrawCount >= 2) {
             canvasDraw = false;
-            canvasDrawCount = 0;
         } else canvasDrawCount++;
 
         if(canvasDrawCount == 1)  {
             canvasDrawSecond = true;
+            canvasDrawSecondCount = 0;
             canvasDrawSecondPosition.x = canvasDrawPosition.x;
             canvasDrawSecondPosition.y = canvasDrawPosition.y;
         }
@@ -1621,6 +1620,7 @@ void drawCanvasArray() {
     }
 
     canvasDraw = true;
+    canvasDrawCount = 0;
     canvasDrawPosition.x = xCoord;
     canvasDrawPosition.y = yCoord;
         
