@@ -760,6 +760,7 @@ typedef enum {
 } Mode;
 
 typedef enum {
+    DEFAULT,
     WAIT_ACKNOWLEDGE,
     REPORTING,
 } Status;
@@ -881,6 +882,8 @@ int handleNum[3] = {-1, -1, -1};
 int numOfHandles = 0;
 
 bool loadTrain = false;
+
+Status currentStatus = DEFAULT;
 
 /************************************************************************************
 *                                                                                   *
@@ -1484,7 +1487,7 @@ void recognizeButtonClick() {
     for(int y = 0; y < CANVAS_SIZE; y++) 
         for(int x = 0; x < CANVAS_SIZE; x++)
             featureArray[y * CANVAS_SIZE + x] = drawArray[y][x];
-
+    printf("Recognizing...\n");
     displayResult(predictModel(&model, SIZE, featureArray));
 }
 
@@ -1545,6 +1548,7 @@ void drawBackground() {
 *************************************************************************************/
 
 void displayResult(int num) {
+    printf("Received Result!\n");
 	*HEX3_HEX0_BASE = seg[num];
 }
 
@@ -1559,34 +1563,32 @@ void mouseInput() {
     unsigned char packet_complete = 0;
     int PS2_data, RVALID;
 
-    Status currentStatus;
+    int numOfBytes = 0;
 
-    int numOfPackets = 1;
-
-    while (1) {
+    while (numOfBytes < 3) {
         PS2_data = *(PS2_ptr);
         RVALID = (PS2_data & 0x8000);
-        if (!RVALID) break;
 
-        mousePackets[0] = mousePackets[1];
-        mousePackets[1] = mousePackets[2];
-        mousePackets[2] = PS2_data & 0xFF;
+        if (RVALID) {
 
-        if(currentStatus != REPORTING && mousePackets[1] == 0xAA && mousePackets[2] == 0x00) {
-            currentStatus = WAIT_ACKNOWLEDGE;
-            *(PS2_ptr) = 0xF4;
-        } 
+            mousePackets[0] = mousePackets[1];
+            mousePackets[1] = mousePackets[2];
+            mousePackets[2] = PS2_data & 0xFF;
 
-        if(currentStatus == WAIT_ACKNOWLEDGE && mousePackets[2] == 0xFA) {
-            currentStatus = REPORTING;
-			continue;
+            if(currentStatus == REPORTING)
+                numOfBytes++;
+
+
+            if(currentStatus != REPORTING && mousePackets[1] == 0xAA && mousePackets[2] == 0x00) {
+                currentStatus = WAIT_ACKNOWLEDGE;
+                *(PS2_ptr) = 0xF4;
+            } 
+
+            if(currentStatus == WAIT_ACKNOWLEDGE && mousePackets[2] == 0xFA) {
+                currentStatus = REPORTING;
+                continue;
+            }
         }
-
-        numOfPackets++;
-
-        if(numOfPackets % 4 != 0) continue;
-
-        numOfPackets = 1;
         
         struct {
             signed int x : 9;
@@ -1597,7 +1599,7 @@ void mouseInput() {
         signedPos.y = ((mousePackets[0] & 0b100000) << 3) | (mousePackets[2]);
 
 
-        mouseX += signedPos.x;
+        mouseX -= signedPos.x;
         mouseY += signedPos.y;
         
         if(mouseX > BORDER_RIGHT - 9)
@@ -1636,7 +1638,8 @@ void config_GIC(void) {
 }
 
 void config_PS2(void) {
-    *((int*)0xFF200104) = 1;
+    volatile int* ptr = 0xFF200100;
+    *(ptr + 0x1) = 0x1;
 }
 
 void set_A9_IRQ_stack(void) {

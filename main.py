@@ -83,5 +83,5 @@ def printToArrayFile(fileName:str, arrayName:str):
     print('Complete')
 
 # printToArrayFile('graphics/cursor.png', 'cursor')
-replaceInclude('main.c', 'updatedMain.h')
+replaceInclude('model.c', 'updatedModel.h')
 replaceInclude('graphics.c', 'updatedGraphics.c')

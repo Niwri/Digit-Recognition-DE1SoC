@@ -30,6 +30,7 @@ typedef enum {
 } Mode;
 
 typedef enum {
+    DEFAULT,
     WAIT_ACKNOWLEDGE,
     REPORTING,
 } Status;
