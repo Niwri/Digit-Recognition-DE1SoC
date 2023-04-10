@@ -122,7 +122,7 @@ void plot_pixel(int x, int y, short int line_color) {
 *************************************************************************************/
 
 bool mouseIsInside(int minX, int maxX, int minY, int maxY) {
-    if(minX <= mouseX && mouseX <= maxX && minY <= mouseY && mouseY <= maxY) 
+    if(minX <= mouse.x && mouse.x <= maxX && minY <= mouse.y && mouse.y <= maxY) 
         return true;
 	
     return false;
@@ -158,6 +158,14 @@ void drawCursor(int mx, int my) {
         for(int x = 0; x < cursorSize.xSize; x++)
             if(cursor[y][x] != 0x0)
                 plot_pixel(mx + x, my - cursorSize.ySize + y, cursor[y][x]);
+}
+
+void removeCursor(Position mousePosition) {
+    Size cursorSize = {sizeof(cursor) / sizeof(cursor[0]), sizeof(cursor[0]) / sizeof(cursor[0][0])};
+    for(int y = 0; y < cursorSize.ySize; y++)
+        for(int x = 0; x < cursorSize.xSize; x++)
+            if(cursor[y][x] != 0x0)
+                plot_pixel(mousePosition.x + x, mousePosition.y - cursorSize.ySize + y, 0x0);
 }
 
 void clearCanvas() {
@@ -572,8 +580,8 @@ void drawCanvasArray() {
     // Draw the white background for the canvas
     Position canvasPos = {CENTER_X - CANVAS_SIZE * BOX_SIZE / 2, RESOLUTION_Y * 1.0 / 7.0};
 
-    int xCoord = (mouseX - canvasPos.x) / BOX_SIZE;
-    int yCoord = (mouseY - canvasPos.y) / BOX_SIZE;
+    int xCoord = (mouse.x - canvasPos.x) / BOX_SIZE;
+    int yCoord = (mouse.y - canvasPos.y) / BOX_SIZE;
 
     if (xCoord < 0 || yCoord < 0) return;
 
@@ -990,12 +998,12 @@ int main() {
 
         // Remove previous cursor of current buffer
         removeCursor(*mousePrevCurrent);
-        int mouseXshot = mouseX, mouseYshot - mouseY;
+        int mouseXshot = mouse.x, mouseYshot = mouse.y;
         drawCursor(mouseXshot, mouseYshot);
 
         // Update previous mouse positions;
-        *mousePrevCurrent.x = mouseXshot;
-        *mousePrevCurrent.y = mouseYshot;
+        (*mousePrevCurrent).x = mouseXshot;
+        (*mousePrevCurrent).y = mouseYshot;
 
         drawPage[currentPage]();
 
@@ -1013,5 +1021,15 @@ int main() {
         handlePage[currentPage]();
         wait_for_vsync(); // swap front and back buffers on VGA vertical sync
         pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+
+        // Update previous mouse address
+        if(pixel_buffer_start == FPGA_CHAR_BASE)
+            mousePrevCurrent = &mousePrevOne;
+        else if (pixel_buffer_start == SDRAM_BASE)
+            mousePrevCurrent = &mousePrevTwo;
+        else {
+            printf("Unknown buffer");
+            exit(1);
+        }
     }
 }
