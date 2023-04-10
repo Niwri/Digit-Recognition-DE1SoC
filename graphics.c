@@ -96,6 +96,8 @@ bool loadTrain = false;
 
 Status currentStatus = DEFAULT;
 
+bool switchPage = false;
+
 /************************************************************************************
 *                                                                                   *
 *   Basic Drawing                                                                   *
@@ -481,6 +483,7 @@ void trainButtonNoHover() {
 
 void trainButtonClick() {
     currentPage = LOAD;
+    switchPage = true;
 }
 
 /***************************************************
@@ -505,8 +508,8 @@ void loadModel() {
 
     setupModel(&model, RandomInitialization, crossEntropyGradientWithSoftmax);
 
-    int batchSize = 10;
-    int epochs = 2;
+    int batchSize = 100;
+    int epochs = 13;
     double learningRate = 0.1;
 
     trainModel(&model,
@@ -515,6 +518,7 @@ void loadModel() {
                 NUM_TEST, test_image, test_label);
     
     currentPage = MENU;
+    switchPage = true;
 }
 
 
@@ -552,6 +556,7 @@ void exitButtonNoHover() {
 
 void drawButtonClick() {
     currentPage = CANVAS;
+    switchPage = true;
 }
 
 void exitButtonClick() {
@@ -651,6 +656,7 @@ void recognizeButtonNoHover() {
 void backButtonClick() {
     clearCanvas();
     currentPage = MENU;
+    switchPage = true;
 }
 
 void recognizeButtonClick() {
@@ -760,32 +766,32 @@ void mouseInput() {
                 continue;
             }
         }
-        
-        struct {
-            signed int x : 9;
-            signed int y : 9;
-        } signedPos;
-
-        signedPos.x = ((mousePackets[0] & 0b10000) << 4) | (mousePackets[1]);
-        signedPos.y = ((mousePackets[0] & 0b100000) << 3) | (mousePackets[2]);
-
-
-        mouseX += signedPos.x;
-        mouseY -= signedPos.y;
-        
-        if(mouseX > BORDER_RIGHT - 9)
-            mouseX = BORDER_RIGHT - 9;
-        if(mouseY > BORDER_BOTTOM)
-            mouseY = BORDER_BOTTOM;
-
-        if(mouseX < BORDER_LEFT)
-            mouseX = BORDER_LEFT;
-        if(mouseY < BORDER_TOP + 9)
-            mouseY = BORDER_TOP + 9;
-
-        leftClick = mousePackets[0] & 0b1;
 
     }
+
+    struct {
+        signed int x : 9;
+        signed int y : 9;
+    } signedPos;
+
+    signedPos.x = ((mousePackets[0] & 0b10000) << 4) | (mousePackets[1]);
+    signedPos.y = ((mousePackets[0] & 0b100000) << 3) | (mousePackets[2]);
+
+
+    mouseX += signedPos.x * SENSITIVITY;
+    mouseY -= signedPos.y * SENSITIVITY;
+    
+    if(mouseX > BORDER_RIGHT - 9)
+        mouseX = BORDER_RIGHT - 9;
+    if(mouseY > BORDER_BOTTOM)
+        mouseY = BORDER_BOTTOM;
+
+    if(mouseX < BORDER_LEFT)
+        mouseX = BORDER_LEFT;
+    if(mouseY < BORDER_TOP + 9)
+        mouseY = BORDER_TOP + 9;
+
+    leftClick = mousePackets[0] & 0b1;
 }
 
 
@@ -953,8 +959,11 @@ int main() {
 	
     while (1)
     {
-        clear_screen();
-        clear_character();
+        if(switchPage) {
+            clear_screen();
+            clear_character();
+            switchPage = false;
+        }
         // Handle user input via polling depending on page and changes handleNumber if event handle occured 
 
         drawPage[currentPage]();
