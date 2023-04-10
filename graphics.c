@@ -764,22 +764,22 @@ void drawCanvasArray() {
         }
         
         if (xCoord < 27 && yCoord < 27) {
-            drawArray[yCoord + 1][xCoord + 1] += 0.3;
+            drawArray[yCoord + 1][xCoord + 1] += 0.1;
             if (drawArray[yCoord + 1][xCoord + 1] > 1) drawArray[yCoord + 1][xCoord + 1] = 1;
         }
         
         if (xCoord > 0 && yCoord > 0) {
-            drawArray[yCoord - 1][xCoord - 1] += 0.3;
+            drawArray[yCoord - 1][xCoord - 1] += 0.1;
             if (drawArray[yCoord - 1][xCoord - 1] > 1) drawArray[yCoord - 1][xCoord - 1] = 1;
         }
 
         if (xCoord < 27 && yCoord > 0) {
-            drawArray[yCoord - 1][xCoord + 1] += 0.3;
+            drawArray[yCoord - 1][xCoord + 1] += 0.1;
             if (drawArray[yCoord - 1][xCoord + 1] > 1) drawArray[yCoord - 1][xCoord + 1] = 1;
         }
         
         if (xCoord > 0 && yCoord < 27) {
-            drawArray[yCoord + 1][xCoord - 1] += 0.3;
+            drawArray[yCoord + 1][xCoord - 1] += 0.1;
             if (drawArray[yCoord + 1][xCoord - 1] > 1) drawArray[yCoord + 1][xCoord - 1] = 1;
         }
     
