@@ -892,6 +892,14 @@ bool switchPage = false;
 
 int pastXCoord = -1, pastYCoord = -1;
 
+int canvasReadyCount = 0;
+bool canvasReady = true;
+
+int canvasDrawCount = 0;
+bool canvasDraw = false;
+
+Position canvasDrawPosition;
+
 /************************************************************************************
 *                                                                                   *
 *   Basic Drawing                                                                   *
@@ -976,7 +984,13 @@ void removeCursor(Position mousePosition) {
         
         if(maxXCoord < 0 || maxYCoord < 0) return;
 
+        if(minXCoord > 27 || minYCoord > 27) return;
 
+        if(minXCoord <= 27 && maxXCoord > 27)
+            maxXCoord = 27;
+        if(minYCoord <= 27 && maxYCoord > 27)
+            maxYCoord = 27;
+        
         for(int my = minYCoord; my < maxYCoord + 1; my++) 
             for(int mx = minXCoord; mx < maxXCoord + 1; mx++) 
                 for(int y = 0; y < BOX_SIZE; y++) 
@@ -1061,18 +1075,44 @@ void menuRender() {
 
 void canvasRender() {
 
-    // Draw the white background for the canvas
+    // Draw the white background for the canvas for both buffers
     Position canvasPos = {CENTER_X - CANVAS_SIZE * BOX_SIZE / 2, RESOLUTION_Y * 1.0 / 7.0};
-	
-	for(int my = 0; my < CANVAS_SIZE; my++)
-        for(int mx = 0; mx < CANVAS_SIZE; mx++)
-            for(int y = 0; y < BOX_SIZE; y++) 
-                for(int x = 0; x < BOX_SIZE; x++) {
-                    short int RBcharacter = 31 - (unsigned short)(drawArray[my][mx] * 31);
-                    short int Gcharacter = 63 - (unsigned short)(drawArray[my][mx] * 63);
-					short int color = RBcharacter << 11 | (Gcharacter << 5) | RBcharacter;
-                    plot_pixel(canvasPos.x + mx * BOX_SIZE + x, canvasPos.y + my * BOX_SIZE + y, color);  
-                }  
+
+    if(canvasReady == true) {
+        
+        for(int y = 0; y < CANVAS_SIZE * BOX_SIZE; y++)
+            for(int x = 0; x < CANVAS_SIZE * BOX_SIZE; x++)
+                plot_pixel(canvasPos.x + x, canvasPos.y + y, 0xFFFF);
+        
+        if(canvasReadyCount >= 2) {
+            canvasReady = false;
+            canvasReadyCount = 0;
+        } else canvasReadyCount++;
+         
+    }
+    
+    // If user drew, update canvas at where it was drawn for both buffers
+    if(canvasDraw == true) {
+        int minX = canvasDrawPosition.x-1 >= 0 ? canvasDrawPosition.x-1 : 0;
+        int minY = canvasDrawPosition.y-1 >= 0 ? canvasDrawPosition.y-1 : 0;
+        int maxX = canvasDrawPosition.x+1 <= 27 ? canvasDrawPosition.x+1 : 27;
+        int maxY = canvasDrawPosition.y+1 <= 27 ? canvasDrawPosition.y+1 : 27;
+
+        for(int my = minY; my < maxY+1; my++)
+            for(int mx = minX; mx < maxX+1; mx++)
+                for(int y = 0; y < BOX_SIZE; y++) 
+                    for(int x = 0; x < BOX_SIZE; x++) {
+                        short int RBcharacter = 31 - (unsigned short)(drawArray[my][mx] * 31);
+                        short int Gcharacter = 63 - (unsigned short)(drawArray[my][mx] * 63);
+                        short int color = RBcharacter << 11 | (Gcharacter << 5) | RBcharacter;
+                        plot_pixel(canvasPos.x + mx * BOX_SIZE + x, canvasPos.y + my * BOX_SIZE + y, color);  
+                    } 
+        
+        if(canvasDrawCount >= 2) {
+            canvasDraw = false;
+            canvasDrawCount = 0;
+        } else canvasDrawCount++;
+    }
 
     // Render back button
     Size backSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
@@ -1501,6 +1541,10 @@ void drawCanvasArray() {
             if (drawArray[yCoord + 1][xCoord - 1] < 0) drawArray[yCoord + 1][xCoord - 1] = 0;
         }
     }
+
+    canvasDraw = true;
+    canvasDrawPosition.x = xCoord;
+    canvasDrawPosition.y = yCoord;
         
 } 
 
@@ -1537,6 +1581,7 @@ void backButtonClick() {
     clearCanvas();
     currentPage = MENU;
     switchPage = true;
+    canvasReady = true;
 }
 
 void recognizeButtonClick() {
@@ -1823,6 +1868,8 @@ int main() {
     switchPageCount = 0;
     numOfHandles = 0;
     drawingMode = PENCIL;
+
+    canvasReady = true;
 
     /* Set up buffers */
     volatile int * pixel_ctrl_ptr = (int*) PIXEL_BUF_CTRL_BASE;
