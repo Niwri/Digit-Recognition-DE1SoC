@@ -395,7 +395,7 @@ int predictModel(Model* model, int exampleSize, double features[exampleSize]) {
         }
     }
 
-    freeDoublePointers(outputLayers, model->numOfLayers+1);
+    freeDoublePointers((void**)outputLayers, model->numOfLayers+1);
 
     return outputMaxLabel;
 }
