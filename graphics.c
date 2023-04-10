@@ -674,6 +674,13 @@ void recognizeButtonClick() {
         for(int x = 0; x < CANVAS_SIZE; x++)
             featureArray[y * CANVAS_SIZE + x] = drawArray[y][x];
     printf("Recognizing...\n");
+
+    printf("Processed image:\n");
+    for (int i=0; i<784; i++) {
+        printf("%1.1f ", test_image[testNum][i]);
+        if ((i+1) % 28 == 0) putchar('\n');
+    }
+
     displayResult(predictModel(&model, SIZE, featureArray));
 }
 
@@ -734,7 +741,7 @@ void drawBackground() {
 *************************************************************************************/
 
 void displayResult(int num) {
-    printf("Received Result!\n");
+    printf("Received Result:  %d\n", num);
 	*HEX3_HEX0_BASE = seg[num];
 }
 
@@ -974,7 +981,7 @@ int main() {
 
     Position* mousePrevCurrent;
 
-    if(pixel_buffer_start == FPGA_CHAR_BASE)
+    if(pixel_buffer_start == FPGA_ONCHIP_BASE)
         mousePrevCurrent = &mousePrevOne;
     else if (pixel_buffer_start == SDRAM_BASE)
         mousePrevCurrent = &mousePrevTwo;
@@ -991,19 +998,13 @@ int main() {
             clear_character();
             if(switchPageCount >= 2) {
                 switchPage = false;
-                switchPageCount == 0;
+                switchPageCount = 0;
             } else
                 switchPageCount++;
         }
 
         // Remove previous cursor of current buffer
         removeCursor(*mousePrevCurrent);
-        int mouseXshot = mouse.x, mouseYshot = mouse.y;
-        drawCursor(mouseXshot, mouseYshot);
-
-        // Update previous mouse positions;
-        (*mousePrevCurrent).x = mouseXshot;
-        (*mousePrevCurrent).y = mouseYshot;
 
         drawPage[currentPage]();
 
@@ -1022,8 +1023,15 @@ int main() {
         wait_for_vsync(); // swap front and back buffers on VGA vertical sync
         pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
 
+        int mouseXshot = mouse.x, mouseYshot = mouse.y;
+        drawCursor(mouseXshot, mouseYshot);
+
+        // Update previous mouse positions;
+        (*mousePrevCurrent).x = mouseXshot;
+        (*mousePrevCurrent).y = mouseYshot;
+
         // Update previous mouse address
-        if(pixel_buffer_start == FPGA_CHAR_BASE)
+        if(pixel_buffer_start == FPGA_ONCHIP_BASE)
             mousePrevCurrent = &mousePrevOne;
         else if (pixel_buffer_start == SDRAM_BASE)
             mousePrevCurrent = &mousePrevTwo;
