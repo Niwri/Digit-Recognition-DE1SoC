@@ -438,6 +438,8 @@ int predictModel(Model* model, int exampleSize, double features[exampleSize]) {
         }
     }
 
+    freeDoublePointers(outputLayers, model->numOfLayers+1);
+
     return outputMaxLabel;
 }
 
@@ -1381,26 +1383,6 @@ void drawCanvasArray() {
             drawArray[yCoord - 1][xCoord] += 0.5;
             if (drawArray[yCoord - 1][xCoord] > 1) drawArray[yCoord - 1][xCoord] = 1;
         }
-        
-        if (xCoord < 27 && yCoord < 27) {
-            drawArray[yCoord + 1][xCoord + 1] += 0.5;
-            if (drawArray[yCoord + 1][xCoord + 1] > 1) drawArray[yCoord + 1][xCoord + 1] = 1;
-        }
-        
-        if (xCoord > 0 && yCoord > 0) {
-            drawArray[yCoord - 1][xCoord - 1] += 0.5;
-            if (drawArray[yCoord - 1][xCoord - 1] > 1) drawArray[yCoord - 1][xCoord - 1] = 1;
-        }
-
-        if (xCoord < 27 && yCoord > 0) {
-            drawArray[yCoord - 1][xCoord + 1] += 0.5;
-            if (drawArray[yCoord - 1][xCoord + 1] > 1) drawArray[yCoord - 1][xCoord + 1] = 1;
-        }
-        
-        if (xCoord > 0 && yCoord < 27) {
-            drawArray[yCoord + 1][xCoord - 1] += 0.5;
-            if (drawArray[yCoord + 1][xCoord - 1] > 1) drawArray[yCoord + 1][xCoord - 1] = 1;
-        }
     
     }
     else {
@@ -1423,26 +1405,6 @@ void drawCanvasArray() {
         if (yCoord > 0) {
             drawArray[yCoord - 1][xCoord] -= 0.5;
             if (drawArray[yCoord - 1][xCoord] < 0) drawArray[yCoord - 1][xCoord] = 0;
-        }
-        
-        if (xCoord < 27 && yCoord < 27) {
-            drawArray[yCoord + 1][xCoord + 1] -= 0.5;
-            if (drawArray[yCoord + 1][xCoord + 1] < 0) drawArray[yCoord + 1][xCoord + 1] = 0;
-        }
-        
-        if (xCoord > 0 && yCoord > 0) {
-            drawArray[yCoord - 1][xCoord - 1] -= 0.5;
-            if (drawArray[yCoord - 1][xCoord - 1] < 0) drawArray[yCoord - 1][xCoord - 1] = 0;
-        }
-
-        if (xCoord < 27 && yCoord > 0) {
-            drawArray[yCoord - 1][xCoord + 1] -= 0.5;
-            if (drawArray[yCoord - 1][xCoord + 1] < 0) drawArray[yCoord - 1][xCoord + 1] = 0;
-        }
-        
-        if (xCoord > 0 && yCoord < 27) {
-            drawArray[yCoord + 1][xCoord - 1] -= 0.5;
-            if (drawArray[yCoord + 1][xCoord - 1] < 0) drawArray[yCoord + 1][xCoord - 1] = 0;
         }
     }
         
@@ -1599,8 +1561,8 @@ void mouseInput() {
         signedPos.y = ((mousePackets[0] & 0b100000) << 3) | (mousePackets[2]);
 
 
-        mouseX -= signedPos.x;
-        mouseY += signedPos.y;
+        mouseX += signedPos.x;
+        mouseY -= signedPos.y;
         
         if(mouseX > BORDER_RIGHT - 9)
             mouseX = BORDER_RIGHT - 9;
