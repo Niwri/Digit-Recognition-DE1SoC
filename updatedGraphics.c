@@ -903,6 +903,9 @@ void noHandle();
 void trainButtonHover();
 void trainButtonNoHover();
 void trainButtonClick();
+void loadButtonHover();
+void loadButtonNoHover();
+void loadButtonClick();
 void loadModel();
 void drawButtonHover();
 void drawButtonNoHover();
@@ -1538,9 +1541,6 @@ void trainButtonHover() {
     Size buttonSize = {sizeof(buttonHover) / sizeof(buttonHover[0]), sizeof(buttonHover[0]) / sizeof(buttonHover[0][0])};
     Position buttonPos = {CENTER_X - buttonSize.xSize / 2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2 - 20};
     drawComponent(buttonPos, buttonSize, buttonHover);
-
-    Position buttonPos2 = {CENTER_X - buttonSize.xSize / 2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2 + 12};
-    drawComponent(buttonPos2, buttonSize, buttonHover);
 }
 
 void trainButtonNoHover() {
@@ -1548,14 +1548,29 @@ void trainButtonNoHover() {
     Size buttonSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
     Position buttonPos = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2 - 20};
     drawComponent(buttonPos, buttonSize, button);
-	
-    Position buttonPos2 = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2 + 12};
-    drawComponent(buttonPos2, buttonSize, button);
 }
 
 void trainButtonClick() {
     currentPage = LOAD;
     switchPage = true;
+}
+
+void loadButtonHover() {
+    // Render highlighted button
+    Size buttonSize = {sizeof(buttonHover) / sizeof(buttonHover[0]), sizeof(buttonHover[0]) / sizeof(buttonHover[0][0])};
+    Position buttonPos2 = {CENTER_X - buttonSize.xSize / 2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2 + 12};
+    drawComponent(buttonPos2, buttonSize, buttonHover);
+}
+
+void loadButtonNoHover() {
+    // Render normal button
+    Size buttonSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position buttonPos2 = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2 + 12};
+    drawComponent(buttonPos2, buttonSize, button);
+}
+
+void loadButtonClick() {
+    loadModel();
 }
 
 /***************************************************
@@ -1813,8 +1828,8 @@ void modeButtonClick() {
 ****************************************************/
 
 handle_draw_ptr handleRender[] = {noHandle, 
-                                  trainButtonHover, trainButtonNoHover, trainButtonClick, 
-                                  loadModel,
+                                  trainButtonHover, trainButtonNoHover, trainButtonClick, loadButtonHover,
+                                  loadButtonNoHover, loadButtonClick, loadModel,
                                   drawButtonHover, drawButtonNoHover, exitButtonHover, exitButtonNoHover, drawButtonClick, exitButtonClick, 
                                   drawCanvasArray, backButtonHover, backButtonNoHover, recognizeButtonHover, recognizeButtonNoHover,
                                   backButtonClick, recognizeButtonClick, modeButtonClick};
