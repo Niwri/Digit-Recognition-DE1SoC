@@ -5,7 +5,7 @@
 #include <time.h>
 
 #define NUM_TEST 5
-#define NUM_TRAIN 20
+#define NUM_TRAIN 100
 
 #define SIZE 784
 
@@ -624,7 +624,7 @@ void trainModel(Model* model,
 
         printf("Test Accuracy: %f\n", testAccuracy);
 
-        //learningRate /= 2;
+        learningRate /= 2;
 
         printf("Epoch done.\n");
     }

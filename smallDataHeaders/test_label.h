@@ -1,1 +1,1 @@
-int test_label[5] = {9,3,9,2,2};
+int test_label[5] = {4,0,3,9,9};

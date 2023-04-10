@@ -3,8 +3,8 @@
 int main() {
     load_mnist();
 
-    int testNum = 200;
-    int trainNum = 3000;
+    int testNum = 5;
+    int trainNum = 100;
 
     write_2D_image_to_file("test_image.h", "test_image", testNum, 5000-testNum/2, test_image);
     write_2D_image_to_file("train_image.h", "train_image", trainNum, 35000 - trainNum/2, train_image);

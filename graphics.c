@@ -39,7 +39,7 @@
 #define BORDER_TOP 16
 #define BORDER_BOTTOM 222
 
-#define SENSITIVITY 0.25
+#define SENSITIVITY 0.20
 
 #include "updatedModel.h"
 #include "graphics.h"
@@ -790,7 +790,7 @@ void mouseInput() {
                 numOfBytes++;
 
 
-            if(currentStatus != REPORTING && mousePackets[1] == 0xAA && mousePackets[2] == 0x00) {
+            if(currentStatus != REPORTING && mousePackets[1] == (unsigned char)0xAA && mousePackets[2] == (unsigned char)0x00) {
                 currentStatus = WAIT_ACKNOWLEDGE;
                 *(PS2_ptr) = 0xF4;
             } 
@@ -810,8 +810,8 @@ void mouseInput() {
         signedPos.y = ((mousePackets[0] & 0b100000) << 3) | (mousePackets[2]);
 
 
-        mouseX -= signedPos.x;
-        mouseY += signedPos.y;
+        mouseX += signedPos.x;
+        mouseY -= signedPos.y;
         
         if(mouseX > BORDER_RIGHT - 9)
             mouseX = BORDER_RIGHT - 9;
