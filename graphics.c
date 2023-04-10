@@ -592,26 +592,6 @@ void drawCanvasArray() {
             drawArray[yCoord - 1][xCoord] += 0.5;
             if (drawArray[yCoord - 1][xCoord] > 1) drawArray[yCoord - 1][xCoord] = 1;
         }
-        
-        if (xCoord < 27 && yCoord < 27) {
-            drawArray[yCoord + 1][xCoord + 1] += 0.5;
-            if (drawArray[yCoord + 1][xCoord + 1] > 1) drawArray[yCoord + 1][xCoord + 1] = 1;
-        }
-        
-        if (xCoord > 0 && yCoord > 0) {
-            drawArray[yCoord - 1][xCoord - 1] += 0.5;
-            if (drawArray[yCoord - 1][xCoord - 1] > 1) drawArray[yCoord - 1][xCoord - 1] = 1;
-        }
-
-        if (xCoord < 27 && yCoord > 0) {
-            drawArray[yCoord - 1][xCoord + 1] += 0.5;
-            if (drawArray[yCoord - 1][xCoord + 1] > 1) drawArray[yCoord - 1][xCoord + 1] = 1;
-        }
-        
-        if (xCoord > 0 && yCoord < 27) {
-            drawArray[yCoord + 1][xCoord - 1] += 0.5;
-            if (drawArray[yCoord + 1][xCoord - 1] > 1) drawArray[yCoord + 1][xCoord - 1] = 1;
-        }
     
     }
     else {
@@ -634,26 +614,6 @@ void drawCanvasArray() {
         if (yCoord > 0) {
             drawArray[yCoord - 1][xCoord] -= 0.5;
             if (drawArray[yCoord - 1][xCoord] < 0) drawArray[yCoord - 1][xCoord] = 0;
-        }
-        
-        if (xCoord < 27 && yCoord < 27) {
-            drawArray[yCoord + 1][xCoord + 1] -= 0.5;
-            if (drawArray[yCoord + 1][xCoord + 1] < 0) drawArray[yCoord + 1][xCoord + 1] = 0;
-        }
-        
-        if (xCoord > 0 && yCoord > 0) {
-            drawArray[yCoord - 1][xCoord - 1] -= 0.5;
-            if (drawArray[yCoord - 1][xCoord - 1] < 0) drawArray[yCoord - 1][xCoord - 1] = 0;
-        }
-
-        if (xCoord < 27 && yCoord > 0) {
-            drawArray[yCoord - 1][xCoord + 1] -= 0.5;
-            if (drawArray[yCoord - 1][xCoord + 1] < 0) drawArray[yCoord - 1][xCoord + 1] = 0;
-        }
-        
-        if (xCoord > 0 && yCoord < 27) {
-            drawArray[yCoord + 1][xCoord - 1] -= 0.5;
-            if (drawArray[yCoord + 1][xCoord - 1] < 0) drawArray[yCoord + 1][xCoord - 1] = 0;
         }
     }
         
