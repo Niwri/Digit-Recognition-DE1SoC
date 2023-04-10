@@ -663,16 +663,14 @@ void loadModel() {
 
     setupModel(&model, RandomInitialization, crossEntropyGradientWithSoftmax);
 
-    int batchSize = 100;
+    int batchSize = 10;
     int epochs = 6;
-    double learningRate = 0.1;
+    double learningRate = 0.3;
 
-    // trainModel(&model,
-    //             NUM_TRAIN, SIZE, train_image, train_label, 
-    //             batchSize, epochs, learningRate,
-    //             NUM_TEST, test_image, test_label);
-
-    loadSavedModel(&model);
+    trainModel(&model,
+                NUM_TRAIN, SIZE, train_image, train_label, 
+                batchSize, epochs, learningRate,
+                NUM_TEST, test_image, test_label);
     
     currentPage = MENU;
     switchPage = true;

@@ -3,10 +3,10 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
-//#include "mnist.h"
+#include "mnist.h"
 
-#define NUM_TEST 200
-#define NUM_TRAIN 3000
+// #define NUM_TEST 200
+// #define NUM_TRAIN 3000
 
 #define SIZE 784
 
@@ -21,12 +21,12 @@
 *                                                                                   *
 *************************************************************************************/
 
-//#include "modelData.h"
+#include "modelData.h"
 
-#include "dataHeaders/test_image.h"
-#include "dataHeaders/test_label.h"
-#include "dataHeaders/train_image.h"
-#include "dataHeaders/train_label.h"
+// #include "dataHeaders/test_image.h"
+// #include "dataHeaders/test_label.h"
+// #include "dataHeaders/train_image.h"
+// #include "dataHeaders/train_label.h"
 
 
 /************************************************************************************
@@ -541,16 +541,21 @@ void trainModel(Model* model,
             // Store average of gradients and update weights/bias after each epoch
             double*** meanWeightGradient = (double***)malloc(model->numOfLayers * sizeof(double**));
             double** meanBiasGradient = (double**)malloc(model->numOfLayers * sizeof(double*));
-            printf("Yes\n");
 
             for(int j = 0; j < model->numOfLayers; j++) {
                 meanWeightGradient[j] = (double**)malloc(model->numOfNodes[j+1] * sizeof(double*));
-                for(int k = 0; k < model->numOfNodes[j+1]; k++)
+                for(int k = 0; k < model->numOfNodes[j+1]; k++) {
                     meanWeightGradient[j][k] = (double*)malloc(model->numOfNodes[j] * sizeof(double));
+                    for(int l = 0; l < model->numOfNodes[j]; l++)
+                        meanWeightGradient[j][k][l] = 0;
+                }
             }
 
-            for(int j = 0; j < model->numOfLayers; j++)
+            for(int j = 0; j < model->numOfLayers; j++) {
                 meanBiasGradient[j] = (double*)malloc(model->numOfNodes[j+1] * sizeof(double));
+                for(int k = 0; k < model->numOfNodes[j+1]; k++)
+                    meanBiasGradient[j][k] = 0;
+            }
         
             
             // Begin iterating through the batches (batchImages)
@@ -618,10 +623,7 @@ void trainModel(Model* model,
                     }
                 }
                 
-                // UPDATE WEIGHTS & BIASES
-                // Last Linear Layer
-
-
+                // Sum up gradients 
                 for(int j = 0; j < model->numOfLayers; j++) {
                     for(int k = 0; k < model->numOfNodes[j+1]; k++) {
 
@@ -644,19 +646,19 @@ void trainModel(Model* model,
                     for(int l = 0; l < model->numOfNodes[j]; l++) {
                         meanWeightGradient[j][k][l] /= batchSize;
                         model->weights[j][k][l] -= meanWeightGradient[j][k][l];
+                        
                     }
 
                     meanBiasGradient[j][k] /= batchSize;
                     model->bias[j][k] -= meanBiasGradient[j][k];
-                    printf("%lf | [%d]\n", model->bias[j][k], iter);
                 }
             }
             
             int* tempNumOfNodes = (int*)malloc((model->numOfLayers) * sizeof(int));
 
-            for(int j = 0; j < model->numOfLayers; j++)
+            for(int j = 0; j < model->numOfLayers; j++) 
                 tempNumOfNodes[j] = model->numOfNodes[j+1];
-
+            
             freeTriplePointers((void***)meanWeightGradient, model->numOfLayers, tempNumOfNodes);
             freeDoublePointers((void**)meanBiasGradient, model->numOfLayers);
             free(tempNumOfNodes);
@@ -690,7 +692,7 @@ void trainModel(Model* model,
 
         printf("Test Accuracy: %f\n", testAccuracy);
 
-        //learningRate /= 2;
+        learningRate /= 2;
 
         printf("Epoch done.\n");
     }
@@ -770,23 +772,23 @@ void saveModel(Model* model) {
     fclose(fptr);
 }
 
-// void loadSavedModel(Model* model) {
+void loadSavedModel(Model* model) {
 
-//     for(int i = 0; i < 84; i++)
-//         for(int j = 0; j < 784; j++)
-//             model->weights[0][i][j] = weightsOne[i][j];
+    for(int i = 0; i < 84; i++)
+        for(int j = 0; j < 784; j++)
+            model->weights[0][i][j] = weightsOne[i][j];
     
-//     for(int i = 0; i < 10; i++)
-//         for(int j = 0; j < 84; j++)
-//             model->weights[1][i][j] = weightsTwo[i][j];
+    for(int i = 0; i < 10; i++)
+        for(int j = 0; j < 84; j++)
+            model->weights[1][i][j] = weightsTwo[i][j];
     
-//     for(int i = 0; i < 84; i++)
-//         model->bias[0][i] = biasOne[i];
+    for(int i = 0; i < 84; i++)
+        model->bias[0][i] = biasOne[i];
     
-//     for(int i = 0; i < 10; i++)
-//         model->bias[1][i] = biasTwo[i];
+    for(int i = 0; i < 10; i++)
+        model->bias[1][i] = biasTwo[i];
     
-// }
+}
 
 /************************************************************************************
 *                                                                                   *
@@ -796,7 +798,7 @@ void saveModel(Model* model) {
 
 int main() {
 
-    //load_mnist();
+    load_mnist();
 
     srand(time(0));
 
@@ -810,19 +812,19 @@ int main() {
 
     setupModel(&model, RandomInitialization, crossEntropyGradientWithSoftmax);
 
-    int batchSize = 10;
+    int batchSize = 100;
     int epochs = 6;
-    double learningRate = 0;
+    double learningRate = 0.3;
 
-    trainModel(&model,
-                NUM_TEST, SIZE, test_image, test_label, 
-                batchSize, epochs, learningRate,
-                NUM_TEST, test_image, test_label);
+    // trainModel(&model,
+    //             NUM_TRAIN, SIZE, train_image, train_label, 
+    //             batchSize, epochs, learningRate,
+    //             NUM_TEST, test_image, test_label);
 
-    //loadSavedModel(&model);
+    loadSavedModel(&model);
 
     
-    saveModel(&model);
+    //saveModel(&model);
 
     char temp;
     for(int testNum = 0; testNum < NUM_TEST; testNum++) {
