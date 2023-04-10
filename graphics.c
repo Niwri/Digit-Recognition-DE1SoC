@@ -652,9 +652,8 @@ void loadModel() {
         loadTrain = true;
         return;
     }
+    
     srand(time(0));
-
-    Model model;
 
     initializeModel(&model, SIZE);
 

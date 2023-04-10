@@ -636,7 +636,6 @@ void trainModel(Model* model,
 
 }
 
-
 /************************************************************************************
 *                                                                                   *
 *   MAIN FUNCTION                                                                   *
@@ -666,7 +665,7 @@ int main() {
                 batchSize, epochs, learningRate,
                 NUM_TEST, test_image, test_label);
 
-    
+
     char temp;
     for(int testNum = 0; testNum < NUM_TEST; testNum++) {
         for (int i=0; i<784; i++) {
