@@ -4,8 +4,8 @@
 #include <math.h>
 #include <time.h>
 
-#define NUM_TEST 200
-#define NUM_TRAIN 3000
+// #define NUM_TEST 200
+// #define NUM_TRAIN 3000
 
 #define SIZE 784
 
@@ -13,16 +13,14 @@
     #define M_PI 3.14159265358979323846
 #endif
 
+
 /************************************************************************************
 *                                                                                   *
 *   Datasets                                                                        *
 *                                                                                   *
 *************************************************************************************/
 
-#include "dataHeaders/test_image.h"
-#include "dataHeaders/test_label.h"
-#include "dataHeaders/train_image.h"
-#include "dataHeaders/train_label.h"
+#include "modelData.h"
 
 
 /************************************************************************************
@@ -638,11 +636,101 @@ void trainModel(Model* model,
 
 /************************************************************************************
 *                                                                                   *
+*   HARDCODED MODEL SAVE                                                            *
+*                                                                                   *
+*************************************************************************************/
+
+// Saves model with 84-node Linear Layer w/ ReLu and 10-node Linear Layer w/ Softmax, given 784 Input size
+void saveModel(Model* model) {
+    FILE* fptr;
+    
+    fptr = fopen("modelData.h", "w");
+
+    // Store first weight array
+    fprintf(fptr, "double weightsOne[%d][%d] = {", 84, 784);
+
+    for(int i = 0; i < 84; i++) {
+        fprintf(fptr, "{");
+        for(int j = 0; j < 784; j++) {
+            fprintf(fptr, "%lf", model->weights[0][i][j]);
+            if(j < 783)
+                fprintf(fptr, ",");
+        }
+        fprintf(fptr, "}");
+        if(i < 83)
+            fprintf(fptr, ",");
+    }
+
+    fprintf(fptr, "};\n");
+
+    // Store second weight array
+    fprintf(fptr, "double weightsTwo[%d][%d] = {", 10, 84);
+
+    for(int i = 0; i < 10; i++) {
+        fprintf(fptr, "{");
+        for(int j = 0; j < 84; j++) {
+            fprintf(fptr, "%lf", model->weights[1][i][j]);
+            if(j < 83)
+                fprintf(fptr, ",");
+        }
+        fprintf(fptr, "}");
+        if(i < 9)
+            fprintf(fptr, ",");
+    }
+
+    fprintf(fptr, "};\n");
+
+    // Store first bias array
+    fprintf(fptr, "double biasOne[%d] = {", 84);
+
+    for(int i = 0; i < 84; i++) {
+        fprintf(fptr, "%lf", model->bias[0][i]);
+        if(i < 83)
+            fprintf(fptr, ",");
+    }
+
+    fprintf(fptr, "};\n");
+
+    // Store second bias array
+    fprintf(fptr, "double biasTwo[%d] = {", 10);
+
+    for(int i = 0; i < 10; i++) {
+        fprintf(fptr, "%lf", model->bias[1][i]);
+        if(i < 9)
+            fprintf(fptr, ",");
+    }
+
+    fprintf(fptr, "};\n");
+    fclose(fptr);
+}
+
+void loadSavedModel(Model* model) {
+
+    for(int i = 0; i < 84; i++)
+        for(int j = 0; j < 784; j++)
+            model->weights[0][i][j] = weightsOne[i][j];
+    
+    for(int i = 0; i < 10; i++)
+        for(int j = 0; j < 84; j++)
+            model->weights[1][i][j] = weightsTwo[i][j];
+    
+    for(int i = 0; i < 84; i++)
+        model->bias[0][i] = biasOne[i];
+    
+    for(int i = 0; i < 10; i++)
+        model->bias[1][i] = biasTwo[i];
+    
+}
+
+/************************************************************************************
+*                                                                                   *
 *   MAIN FUNCTION                                                                   *
 *                                                                                   *
 *************************************************************************************/
 /*
 int main() {
+
+    load_mnist();
 
     srand(time(0));
 
@@ -660,11 +748,15 @@ int main() {
     int epochs = 13;
     double learningRate = 0.05;
 
-    trainModel(&model,
-                NUM_TRAIN, SIZE, train_image, train_label, 
-                batchSize, epochs, learningRate,
-                NUM_TEST, test_image, test_label);
+    // trainModel(&model,
+    //             NUM_TRAIN, SIZE, train_image, train_label, 
+    //             batchSize, epochs, learningRate,
+    //             NUM_TEST, test_image, test_label);
 
+    loadSavedModel(&model);
+
+    
+    saveModel(&model);
 
     char temp;
     for(int testNum = 0; testNum < NUM_TEST; testNum++) {
@@ -678,6 +770,7 @@ int main() {
         scanf("%c", &temp);
         printf("\n");
     }
+
 
 
     // Free remaining vectors

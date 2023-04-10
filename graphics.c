@@ -657,7 +657,7 @@ void loadModel() {
 
     initializeModel(&model, SIZE);
 
-    addLayer(&model, LINEAR, 50, leakReLuVector, leakReLuGradient);
+    addLayer(&model, LINEAR, 84, leakReLuVector, leakReLuGradient);
 
     addLayer(&model, LINEAR, 10, softMaxVector, softMaxGradient);
 
@@ -667,10 +667,12 @@ void loadModel() {
     int epochs = 6;
     double learningRate = 0.1;
 
-    trainModel(&model,
-                NUM_TRAIN, SIZE, train_image, train_label, 
-                batchSize, epochs, learningRate,
-                NUM_TEST, test_image, test_label);
+    // trainModel(&model,
+    //             NUM_TRAIN, SIZE, train_image, train_label, 
+    //             batchSize, epochs, learningRate,
+    //             NUM_TEST, test_image, test_label);
+
+    loadSavedModel(&model);
     
     currentPage = MENU;
     switchPage = true;
@@ -974,7 +976,7 @@ void mouseInput() {
                 numOfBytes++;
 
 
-            if(currentStatus != REPORTING && mousePackets[1] == (unsigned char)0xAA && mousePackets[2] == (unsigned char)0x00) {
+            if(currentStatus == DEFAULT && mousePackets[1] == (unsigned char)0xAA && mousePackets[2] == (unsigned char)0x00) {
                 currentStatus = WAIT_ACKNOWLEDGE;
                 *(PS2_ptr) = 0xF4;
             } 
