@@ -85,7 +85,7 @@ unsigned char seg[10] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0
 
 // To keep track of mouse movements and events
 unsigned char mousePackets[3] = {0, 0, 0}; // click = 0, x = 1, y = 2
-int mouseX = BORDER_LEFT, mouseY = BORDER_TOP+9;
+Position mouse = { BORDER_LEFT, BORDER_TOP+9};
 bool leftClick = false;
 
 // To store every handle event to process 
@@ -95,6 +95,9 @@ int numOfHandles = 0;
 bool loadTrain = false;
 
 Status currentStatus = DEFAULT;
+
+int switchPageCount = 0;
+bool switchPage = false;
 
 /************************************************************************************
 *                                                                                   *
@@ -119,7 +122,7 @@ void plot_pixel(int x, int y, short int line_color) {
 *************************************************************************************/
 
 bool mouseIsInside(int minX, int maxX, int minY, int maxY) {
-    if(minX <= mouseX && mouseX <= maxX && minY <= mouseY && mouseY <= maxY) 
+    if(minX <= mouse.x && mouse.x <= maxX && minY <= mouse.y && mouse.y <= maxY) 
         return true;
 	
     return false;
@@ -155,6 +158,14 @@ void drawCursor(int mx, int my) {
         for(int x = 0; x < cursorSize.xSize; x++)
             if(cursor[y][x] != 0x0)
                 plot_pixel(mx + x, my - cursorSize.ySize + y, cursor[y][x]);
+}
+
+void removeCursor(Position mousePosition) {
+    Size cursorSize = {sizeof(cursor) / sizeof(cursor[0]), sizeof(cursor[0]) / sizeof(cursor[0][0])};
+    for(int y = 0; y < cursorSize.ySize; y++)
+        for(int x = 0; x < cursorSize.xSize; x++)
+            if(cursor[y][x] != 0x0)
+                plot_pixel(mousePosition.x + x, mousePosition.y - cursorSize.ySize + y, 0x0);
 }
 
 void clearCanvas() {
@@ -481,6 +492,7 @@ void trainButtonNoHover() {
 
 void trainButtonClick() {
     currentPage = LOAD;
+    switchPage = true;
 }
 
 /***************************************************
@@ -505,8 +517,8 @@ void loadModel() {
 
     setupModel(&model, RandomInitialization, crossEntropyGradientWithSoftmax);
 
-    int batchSize = 10;
-    int epochs = 2;
+    int batchSize = 100;
+    int epochs = 13;
     double learningRate = 0.1;
 
     trainModel(&model,
@@ -515,6 +527,7 @@ void loadModel() {
                 NUM_TEST, test_image, test_label);
     
     currentPage = MENU;
+    switchPage = true;
 }
 
 
@@ -552,6 +565,7 @@ void exitButtonNoHover() {
 
 void drawButtonClick() {
     currentPage = CANVAS;
+    switchPage = true;
 }
 
 void exitButtonClick() {
@@ -566,8 +580,8 @@ void drawCanvasArray() {
     // Draw the white background for the canvas
     Position canvasPos = {CENTER_X - CANVAS_SIZE * BOX_SIZE / 2, RESOLUTION_Y * 1.0 / 7.0};
 
-    int xCoord = (mouseX - canvasPos.x) / BOX_SIZE;
-    int yCoord = (mouseY - canvasPos.y) / BOX_SIZE;
+    int xCoord = (mouse.x - canvasPos.x) / BOX_SIZE;
+    int yCoord = (mouse.y - canvasPos.y) / BOX_SIZE;
 
     if (xCoord < 0 || yCoord < 0) return;
 
@@ -692,6 +706,7 @@ void recognizeButtonNoHover() {
 void backButtonClick() {
     clearCanvas();
     currentPage = MENU;
+    switchPage = true;
 }
 
 void recognizeButtonClick() {
@@ -801,32 +816,32 @@ void mouseInput() {
                 continue;
             }
         }
-        
-        struct {
-            signed int x : 9;
-            signed int y : 9;
-        } signedPos;
-
-        signedPos.x = ((mousePackets[0] & 0b10000) << 4) | (mousePackets[1]);
-        signedPos.y = ((mousePackets[0] & 0b100000) << 3) | (mousePackets[2]);
-
-
-        mouseX += signedPos.x;
-        mouseY -= signedPos.y;
-        
-        if(mouseX > BORDER_RIGHT - 9)
-            mouseX = BORDER_RIGHT - 9;
-        if(mouseY > BORDER_BOTTOM)
-            mouseY = BORDER_BOTTOM;
-
-        if(mouseX < BORDER_LEFT)
-            mouseX = BORDER_LEFT;
-        if(mouseY < BORDER_TOP + 9)
-            mouseY = BORDER_TOP + 9;
-
-        leftClick = mousePackets[0] & 0b1;
 
     }
+
+    struct {
+        signed int x : 9;
+        signed int y : 9;
+    } signedPos;
+
+    signedPos.x = ((mousePackets[0] & 0b10000) << 4) | (mousePackets[1]);
+    signedPos.y = ((mousePackets[0] & 0b100000) << 3) | (mousePackets[2]);
+
+
+    mouse.x += signedPos.x * SENSITIVITY;
+    mouse.y -= signedPos.y * SENSITIVITY;
+    
+    if(mouse.x > BORDER_RIGHT - 9)
+        mouse.x = BORDER_RIGHT - 9;
+    if(mouse.y > BORDER_BOTTOM)
+        mouse.y = BORDER_BOTTOM;
+
+    if(mouse.x < BORDER_LEFT)
+        mouse.x = BORDER_LEFT;
+    if(mouse.y < BORDER_TOP + 9)
+        mouse.y = BORDER_TOP + 9;
+
+    leftClick = mousePackets[0] & 0b1;
 }
 
 
@@ -982,29 +997,61 @@ int main() {
     
     pixel_buffer_start = *pixel_ctrl_ptr;
     drawBackground();
+    clear_screen();
     drawPage[currentPage]();
 
     *(pixel_ctrl_ptr + 1) = SDRAM_BASE;
     
     pixel_buffer_start = *(pixel_ctrl_ptr + 1);
     drawBackground(); 
+    clear_screen();
     drawPage[currentPage]();
 
-    
+    // Previous mouse position of first buffer (FPGA_ONCHIP_BASE)
+    Position mousePrevOne = {mouse.x, mouse.y};
+
+    // Previous mouse position of second buffer (SDRAM_BASE)
+    Position mousePrevTwo = {mouse.x, mouse.y};
+
+    Position* mousePrevCurrent;
+
+    if(pixel_buffer_start == FPGA_CHAR_BASE)
+        mousePrevCurrent = &mousePrevOne;
+    else if (pixel_buffer_start == SDRAM_BASE)
+        mousePrevCurrent = &mousePrevTwo;
+    else {
+        printf("Unknown buffer");
+        exit(1);
+    }
 	
     while (1)
-    {
-        clear_screen();
-        clear_character();
-        // Handle user input via polling depending on page and changes handleNumber if event handle occured 
+    {   
+        // Clears page for both buffers if page switches
+        if(switchPage) {
+            clear_screen();
+            clear_character();
+            if(switchPageCount >= 2) {
+                switchPage = false;
+                switchPageCount == 0;
+            } else
+                switchPageCount++;
+        }
+
+        // Remove previous cursor of current buffer
+        removeCursor(*mousePrevCurrent);
+        int mouseXshot = mouse.x, mouseYshot = mouse.y;
+        drawCursor(mouseXshot, mouseYshot);
+
+        // Update previous mouse positions;
+        (*mousePrevCurrent).x = mouseXshot;
+        (*mousePrevCurrent).y = mouseYshot;
 
         drawPage[currentPage]();
 
         // Render any event handles that occured from handlePage
         for(int i = 0; i < numOfHandles; i++) 
             handleRender[handleNum[i]]();
-
-        drawCursor(mouseX, mouseY);
+        
 
 		handleNum[0] = -1;
         handleNum[1] = -1;
@@ -1015,5 +1062,15 @@ int main() {
         handlePage[currentPage]();
         wait_for_vsync(); // swap front and back buffers on VGA vertical sync
         pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
+
+        // Update previous mouse address
+        if(pixel_buffer_start == FPGA_CHAR_BASE)
+            mousePrevCurrent = &mousePrevOne;
+        else if (pixel_buffer_start == SDRAM_BASE)
+            mousePrevCurrent = &mousePrevTwo;
+        else {
+            printf("Unknown buffer");
+            exit(1);
+        }
     }
 }
