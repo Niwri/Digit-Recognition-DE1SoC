@@ -168,6 +168,34 @@ void removeCursor(Position mousePosition) {
         for(int x = 0; x < cursorSize.xSize; x++)
             if(cursor[y][x] != 0x0)
                 plot_pixel(mousePosition.x + x, mousePosition.y - cursorSize.ySize + y, 0x0);
+
+    if(currentPage == CANVAS) {
+        Position canvasPos = {CENTER_X - CANVAS_SIZE * BOX_SIZE / 2, RESOLUTION_Y * 1.0 / 7.0};
+
+        int minXCoord = (mousePosition.x - canvasPos.x) / BOX_SIZE;
+        int minYCoord = (mousePosition.y - cursorSize.ySize - canvasPos.y) / BOX_SIZE;
+        
+        int maxXCoord = (mousePosition.x + cursorSize.xSize - canvasPos.x) / BOX_SIZE;
+        int maxYCoord = (mousePosition.y - canvasPos.y) / BOX_SIZE;
+
+        if(minXCoord < 0 && maxXCoord >= 0)
+            minXCoord = 0;
+        if(minYCoord < 0 && maxYCoord >= 0)
+            minYCoord = 0;
+        
+        if(maxXCoord < 0 || maxYCoord < 0) return;
+
+
+        for(int my = minYCoord; my < maxYCoord + 1; my++) 
+            for(int mx = minXCoord; mx < maxXCoord + 1; mx++) 
+                for(int y = 0; y < BOX_SIZE; y++) 
+                    for(int x = 0; x < BOX_SIZE; x++) {
+                        short int RBcharacter = 31 - (unsigned short)(drawArray[my][mx] * 31);
+                        short int Gcharacter = 63 - (unsigned short)(drawArray[my][mx] * 63);
+                        short int color = RBcharacter << 11 | (Gcharacter << 5) | RBcharacter;
+                        plot_pixel(canvasPos.x + mx * BOX_SIZE + x, canvasPos.y + my * BOX_SIZE + y, color);  
+                    } 
+    }
 }
 
 void clearCanvas() {
@@ -588,10 +616,13 @@ void drawCanvasArray() {
     if(xCoord == pastXCoord && yCoord == pastYCoord)
         return;
 
-    if (xCoord < 0 || yCoord < 0) return;
-
     pastXCoord = xCoord;
     pastYCoord = yCoord;
+
+    if (xCoord < 0 || yCoord < 0) return;
+    if (xCoord > 27 || yCoord > 27) return;
+
+    
 
     if (drawingMode == PENCIL) {
         drawArray[yCoord][xCoord] = 1.0;
