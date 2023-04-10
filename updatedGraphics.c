@@ -890,6 +890,8 @@ Status currentStatus = DEFAULT;
 int switchPageCount = 0;
 bool switchPage = false;
 
+int pastXCoord = -1, pastYCoord = -1;
+
 /************************************************************************************
 *                                                                                   *
 *   Basic Drawing                                                                   *
@@ -1374,7 +1376,13 @@ void drawCanvasArray() {
     int xCoord = (mouse.x - canvasPos.x) / BOX_SIZE;
     int yCoord = (mouse.y - canvasPos.y) / BOX_SIZE;
 
+    if(xCoord == pastXCoord && yCoord == pastYCoord)
+        return;
+
     if (xCoord < 0 || yCoord < 0) return;
+
+    pastXCoord = xCoord;
+    pastYCoord = yCoord;
 
     if (drawingMode == PENCIL) {
         drawArray[yCoord][xCoord] = 1.0;
@@ -1509,7 +1517,7 @@ void recognizeButtonClick() {
 
     printf("Processed image:\n");
     for (int i=0; i<784; i++) {
-        printf("%1.1f ", test_image[testNum][i]);
+        printf("%1.1f ", featureArray[i]);
         if ((i+1) % 28 == 0) putchar('\n');
     }
 
@@ -1852,8 +1860,6 @@ int main() {
         numOfHandles = 0;
 
         handlePage[currentPage]();
-        wait_for_vsync(); // swap front and back buffers on VGA vertical sync
-        pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
 
         int mouseXshot = mouse.x, mouseYshot = mouse.y;
         drawCursor(mouseXshot, mouseYshot);
@@ -1861,6 +1867,9 @@ int main() {
         // Update previous mouse positions;
         (*mousePrevCurrent).x = mouseXshot;
         (*mousePrevCurrent).y = mouseYshot;
+
+        wait_for_vsync(); // swap front and back buffers on VGA vertical sync
+        pixel_buffer_start = *(pixel_ctrl_ptr + 1); // new back buffer
 
         // Update previous mouse address
         if(pixel_buffer_start == FPGA_ONCHIP_BASE)
