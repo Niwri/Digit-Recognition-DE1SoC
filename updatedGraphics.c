@@ -905,6 +905,11 @@ bool canvasDrawSecond = false;
 
 Position canvasDrawSecondPosition;
 
+int canvasDrawThirdCount = 0;
+bool canvasDrawThird = false;
+
+Position canvasDrawThirdPosition;
+
 /************************************************************************************
 *                                                                                   *
 *   Basic Drawing                                                                   *
@@ -1102,6 +1107,29 @@ void canvasRender() {
          
     }
 
+    // If user drew in 2nd previous frame, update canvas at where it was drawn for both buffers for good measure 
+    if(canvasDrawThird == true) {
+        int minX = canvasDrawThirdPosition.x-1 >= 0 ? canvasDrawThirdPosition.x-1 : 0;
+        int minY = canvasDrawThirdPosition.y-1 >= 0 ? canvasDrawThirdPosition.y-1 : 0;
+        int maxX = canvasDrawThirdPosition.x+1 <= 27 ? canvasDrawThirdPosition.x+1 : 27;
+        int maxY = canvasDrawThirdPosition.y+1 <= 27 ? canvasDrawThirdPosition.y+1 : 27;
+
+        for(int my = minY; my < maxY+1; my++)
+            for(int mx = minX; mx < maxX+1; mx++)
+                for(int y = 0; y < BOX_SIZE; y++) 
+                    for(int x = 0; x < BOX_SIZE; x++) {
+                        short int RBcharacter = 31 - (unsigned short)(drawArray[my][mx] * 31);
+                        short int Gcharacter = 63 - (unsigned short)(drawArray[my][mx] * 63);
+                        short int color = RBcharacter << 11 | (Gcharacter << 5) | RBcharacter;
+                        plot_pixel(canvasPos.x + mx * BOX_SIZE + x, canvasPos.y + my * BOX_SIZE + y, color);  
+                    } 
+        
+        if(canvasDrawThirdCount >= 2) {
+            canvasDrawThird = false;
+            canvasDrawThirdCount = 0;
+        } else canvasDrawThirdCount++;
+    }
+
     // If user drew in previous frame, update canvas at where it was drawn for both buffers for good measure 
     if(canvasDrawSecond == true) {
         int minX = canvasDrawSecondPosition.x-1 >= 0 ? canvasDrawSecondPosition.x-1 : 0;
@@ -1123,6 +1151,12 @@ void canvasRender() {
             canvasDrawSecond = false;
             canvasDrawSecondCount = 0;
         } else canvasDrawSecondCount++;
+
+        if(canvasDrawSecondCount == 1) {
+            canvasDrawThird = true;
+            canvasDrawThirdPosition.x = canvasDrawSecondPosition.x;
+            canvasDrawThirdPosition.y = canvasDrawSecondPosition.y;
+        }
     }
     
     // If user drew, update canvas at where it was drawn for both buffers
@@ -1191,7 +1225,7 @@ void canvasRender() {
     }
     
     Position modePos = {CENTER_X - modeSize.xSize / 2, RESOLUTION_Y * 9.0 / 11.0 - modeSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
-    clearArea(modePos, modeSize, 0xFFFF);
+    clearArea(modePos, modeSize, 0x0);
     if(drawingMode == PENCIL)
         drawComponent(modePos, modeSize, pencil);
     else if(drawingMode == ERASE) 
@@ -1423,7 +1457,7 @@ void loadModel() {
     setupModel(&model, RandomInitialization, crossEntropyGradientWithSoftmax);
 
     int batchSize = 100;
-    int epochs = 13;
+    int epochs = 6;
     double learningRate = 0.1;
 
     trainModel(&model,
