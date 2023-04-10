@@ -3,9 +3,10 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+//#include "mnist.h"
 
-// #define NUM_TEST 200
-// #define NUM_TRAIN 3000
+#define NUM_TEST 200
+#define NUM_TRAIN 3000
 
 #define SIZE 784
 
@@ -20,7 +21,12 @@
 *                                                                                   *
 *************************************************************************************/
 
-#include "modelData.h"
+//#include "modelData.h"
+
+#include "dataHeaders/test_image.h"
+#include "dataHeaders/test_label.h"
+#include "dataHeaders/train_image.h"
+#include "dataHeaders/train_label.h"
 
 
 /************************************************************************************
@@ -317,6 +323,24 @@ double softMaxGradient(double x) {
 *************************************************************************************/
 
 // Allocate arrays for batches of examples and layers
+void allocateRandomBatch(double*** batchExample, int** batchLabel, int batchSize,
+                   int exampleSize, double features[][exampleSize], int numOfExamples, int labels[numOfExamples]) {
+
+    *batchExample = (double**)malloc(batchSize * sizeof(double*));
+    *batchLabel = (int*)malloc(batchSize * sizeof(int));
+
+    for(int j = 0; j < batchSize; j++) {
+        int exampleIndex = rand() % numOfExamples;
+        (*batchExample)[j] = (double*)malloc(exampleSize * sizeof(double));
+
+        memcpy((*batchExample)[j], features[exampleIndex], exampleSize * sizeof(double));
+        (*batchLabel)[j] = labels[exampleIndex];
+    }
+     
+}
+
+
+// Allocate arrays for batches of examples and layers
 void allocateBatch(double*** batchExample, int** batchLabel, int batchSize,
                    int exampleSize, double features[][exampleSize],
                    int iterationNum, int numOfExamples, int labels[numOfExamples]) {
@@ -509,11 +533,25 @@ void trainModel(Model* model,
             double accuracy = 0;
         
             // Allocate features and labels into batches (batchImages, batchLabelOneHot)
-            allocateBatch(&batchImages, &batchLabel, batchSize, exampleSize, features, iter, numOfExamples, labels);
+            allocateRandomBatch(&batchImages, &batchLabel, batchSize, exampleSize, features, numOfExamples, labels);
 
             // Convert label into one-hot-encoded vector 
             oneHotEncoded(batchLabel, &batchLabelOneHot, batchSize, 10);
 
+            // Store average of gradients and update weights/bias after each epoch
+            double*** meanWeightGradient = (double***)malloc(model->numOfLayers * sizeof(double**));
+            double** meanBiasGradient = (double**)malloc(model->numOfLayers * sizeof(double*));
+            printf("Yes\n");
+
+            for(int j = 0; j < model->numOfLayers; j++) {
+                meanWeightGradient[j] = (double**)malloc(model->numOfNodes[j+1] * sizeof(double*));
+                for(int k = 0; k < model->numOfNodes[j+1]; k++)
+                    meanWeightGradient[j][k] = (double*)malloc(model->numOfNodes[j] * sizeof(double));
+            }
+
+            for(int j = 0; j < model->numOfLayers; j++)
+                meanBiasGradient[j] = (double*)malloc(model->numOfNodes[j+1] * sizeof(double));
+        
             
             // Begin iterating through the batches (batchImages)
             for(int i = 0; i < batchSize; i++) {
@@ -588,9 +626,9 @@ void trainModel(Model* model,
                     for(int k = 0; k < model->numOfNodes[j+1]; k++) {
 
                         for(int l = 0; l < model->numOfNodes[j]; l++)
-                            model->weights[j][k][l] -= gradient[j][k] * learningRate * outputLayers[j][l];
+                            meanWeightGradient[j][k][l] += gradient[j][k] * learningRate * outputLayers[j][l];
 
-                        model->bias[j][k] -= gradient[j][k] * learningRate;
+                        meanBiasGradient[j][k] += gradient[j][k] * learningRate;
                     }
                 }
 
@@ -598,6 +636,30 @@ void trainModel(Model* model,
                 freeDoublePointers((void**)outputLayers, model->numOfLayers+1);
 
             }
+
+            // Update model after batch after averaging out summation of gradients
+            for(int j = 0; j < model->numOfLayers; j++) {
+                for(int k = 0; k < model->numOfNodes[j+1]; k++) {
+
+                    for(int l = 0; l < model->numOfNodes[j]; l++) {
+                        meanWeightGradient[j][k][l] /= batchSize;
+                        model->weights[j][k][l] -= meanWeightGradient[j][k][l];
+                    }
+
+                    meanBiasGradient[j][k] /= batchSize;
+                    model->bias[j][k] -= meanBiasGradient[j][k];
+                    printf("%lf | [%d]\n", model->bias[j][k], iter);
+                }
+            }
+            
+            int* tempNumOfNodes = (int*)malloc((model->numOfLayers) * sizeof(int));
+
+            for(int j = 0; j < model->numOfLayers; j++)
+                tempNumOfNodes[j] = model->numOfNodes[j+1];
+
+            freeTriplePointers((void***)meanWeightGradient, model->numOfLayers, tempNumOfNodes);
+            freeDoublePointers((void**)meanBiasGradient, model->numOfLayers);
+            free(tempNumOfNodes);
             
             accuracy /= batchSize;
             totalAccuracy += accuracy;
@@ -607,10 +669,14 @@ void trainModel(Model* model,
             freeDoublePointers((void**)batchImages, batchSize);
 
         }
+
+        
         
         totalAccuracy /= numOfIterations;
 
         printf("Accuracy: %lf\n", totalAccuracy);
+
+        
 
         double testAccuracy = 0;
         for(int i = 0; i < numOfTests; i++) {
@@ -624,7 +690,7 @@ void trainModel(Model* model,
 
         printf("Test Accuracy: %f\n", testAccuracy);
 
-        learningRate /= 2;
+        //learningRate /= 2;
 
         printf("Epoch done.\n");
     }
@@ -704,33 +770,33 @@ void saveModel(Model* model) {
     fclose(fptr);
 }
 
-void loadSavedModel(Model* model) {
+// void loadSavedModel(Model* model) {
 
-    for(int i = 0; i < 84; i++)
-        for(int j = 0; j < 784; j++)
-            model->weights[0][i][j] = weightsOne[i][j];
+//     for(int i = 0; i < 84; i++)
+//         for(int j = 0; j < 784; j++)
+//             model->weights[0][i][j] = weightsOne[i][j];
     
-    for(int i = 0; i < 10; i++)
-        for(int j = 0; j < 84; j++)
-            model->weights[1][i][j] = weightsTwo[i][j];
+//     for(int i = 0; i < 10; i++)
+//         for(int j = 0; j < 84; j++)
+//             model->weights[1][i][j] = weightsTwo[i][j];
     
-    for(int i = 0; i < 84; i++)
-        model->bias[0][i] = biasOne[i];
+//     for(int i = 0; i < 84; i++)
+//         model->bias[0][i] = biasOne[i];
     
-    for(int i = 0; i < 10; i++)
-        model->bias[1][i] = biasTwo[i];
+//     for(int i = 0; i < 10; i++)
+//         model->bias[1][i] = biasTwo[i];
     
-}
+// }
 
 /************************************************************************************
 *                                                                                   *
 *   MAIN FUNCTION                                                                   *
 *                                                                                   *
 *************************************************************************************/
-/*
+
 int main() {
 
-    load_mnist();
+    //load_mnist();
 
     srand(time(0));
 
@@ -744,16 +810,16 @@ int main() {
 
     setupModel(&model, RandomInitialization, crossEntropyGradientWithSoftmax);
 
-    int batchSize = 100;
-    int epochs = 13;
-    double learningRate = 0.05;
+    int batchSize = 10;
+    int epochs = 6;
+    double learningRate = 0;
 
-    // trainModel(&model,
-    //             NUM_TRAIN, SIZE, train_image, train_label, 
-    //             batchSize, epochs, learningRate,
-    //             NUM_TEST, test_image, test_label);
+    trainModel(&model,
+                NUM_TEST, SIZE, test_image, test_label, 
+                batchSize, epochs, learningRate,
+                NUM_TEST, test_image, test_label);
 
-    loadSavedModel(&model);
+    //loadSavedModel(&model);
 
     
     saveModel(&model);
@@ -771,11 +837,9 @@ int main() {
         printf("\n");
     }
 
-
-
     // Free remaining vectors
     clearModel(&model);
     printf("\nEnd.");
 
     return 0;
-}*/
+}
