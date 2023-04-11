@@ -1,3 +1,5 @@
+#ifndef GRAPHICS_H
+#define GRAPHICS_H
 
 /************************************************************************************
 *                                                                                   *
@@ -34,6 +36,12 @@ typedef enum {
     WAIT_ACKNOWLEDGE,
     REPORTING,
 } Status;
+
+typedef enum {
+    UNKNOWN,
+    LOAD_MODEL,
+    TRAIN_MODEL
+} ModelInitiation;
 
 typedef void (*page_draw_ptr)();
 typedef void (*page_handle_ptr)();
@@ -101,3 +109,5 @@ void __attribute__((interrupt)) __cs3_reset(void);
 void __attribute__((interrupt)) __cs3_isr_undef(void);
 void __attribute__((interrupt)) __cs3_isr_swi(void);
 void __attribute__((interrupt)) __cs3_isr_pabort(void);
+
+#endif

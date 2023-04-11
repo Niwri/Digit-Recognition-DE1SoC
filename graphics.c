@@ -42,7 +42,6 @@
 #define SENSITIVITY 0.20
 
 #include "updatedModel.h"
-#include "graphics.h"
 
 /************************************************************************************
 *                                                                                   *
@@ -118,6 +117,8 @@ int canvasDrawThirdCount = 0;
 bool canvasDrawThird = false;
 
 Position canvasDrawThirdPosition;
+
+ModelInitiation modelInit = UNKNOWN;
 
 /************************************************************************************
 *                                                                                   *
@@ -249,13 +250,22 @@ void startRender() {
     
     // Render button
     Size buttonSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
-    Position buttonPos = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
+    Position buttonPos = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2 - 20};
     drawComponent(buttonPos, buttonSize, button);
+	
+	Size buttonSize2 = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position buttonPos2 = {CENTER_X - buttonSize2.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize2.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2 + 12};
+    drawComponent(buttonPos2, buttonSize2, button);
     
     // Render train text
     char* text = "TRAIN MODEL";
-    Position textPos = {CENTER_COL - 5, CHAR_ROW * 2.0 / 3.0};
+    Position textPos = {CENTER_COL - 5, CHAR_ROW * 2.0 / 3.0 - 5};
     writeText(textPos, text);
+    
+	char* text2 = "LOAD MODEL";
+    Position textPos2 = {CENTER_COL - 5, CHAR_ROW * 2.0 / 3.0 + 3};
+    writeText(textPos2, text2);
+
     
 }
 
@@ -455,12 +465,16 @@ void startHandle() {
         Train Button Hover = 1
         Train Button No Hover = 2
         Train Button Click = 3
+        Load Button Hover = 19
+        Load Button No Hover = 20
+        Load Button Click = 21
     */
 
     // Check if mouse is inside train button
     Size buttonSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
-    Position buttonPos = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
-
+    Position buttonPos = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2 - 20};
+	Position buttonPos2 = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2 + 12};
+	
     if(mouseIsInside(buttonPos.x, buttonPos.x + buttonSize.xSize, buttonPos.y, buttonPos.y + buttonSize.ySize) == true) {
         
         handleNum[0] = 1;
@@ -471,8 +485,21 @@ void startHandle() {
     } else {
         handleNum[0] = 2;
     }
+	
+	if(mouseIsInside(buttonPos2.x, buttonPos2.x + buttonSize.xSize, buttonPos2.y, buttonPos2.y + buttonSize.ySize) == true) {
+        
+        handleNum[1] = 19;
+        // Check if mouse clicked on train button
+        if(leftClick) {
+            handleNum[1] = 21;
+        }
+    }
+	
+	else {
+        handleNum[1] = 20;
+    }
 
-    numOfHandles = 1;
+    numOfHandles = 2;
 }
 
 void loadHandle() {
@@ -619,6 +646,7 @@ void noHandle() {
     return;
 }
 
+
 /***************************************************
 *   Start Handles                                  *
 ****************************************************/
@@ -626,19 +654,40 @@ void noHandle() {
 void trainButtonHover() {
     // Render highlighted button
     Size buttonSize = {sizeof(buttonHover) / sizeof(buttonHover[0]), sizeof(buttonHover[0]) / sizeof(buttonHover[0][0])};
-    Position buttonPos = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
+    Position buttonPos = {CENTER_X - buttonSize.xSize / 2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2 - 20};
     drawComponent(buttonPos, buttonSize, buttonHover);
 }
 
 void trainButtonNoHover() {
     // Render normal button
     Size buttonSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
-    Position buttonPos = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2};
+    Position buttonPos = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2 - 20};
     drawComponent(buttonPos, buttonSize, button);
 }
 
 void trainButtonClick() {
     currentPage = LOAD;
+    modelInit = TRAIN_MODEL;
+    switchPage = true;
+}
+
+void loadButtonHover() {
+    // Render highlighted button
+    Size buttonSize = {sizeof(buttonHover) / sizeof(buttonHover[0]), sizeof(buttonHover[0]) / sizeof(buttonHover[0][0])};
+    Position buttonPos2 = {CENTER_X - buttonSize.xSize / 2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2 + 12};
+    drawComponent(buttonPos2, buttonSize, buttonHover);
+}
+
+void loadButtonNoHover() {
+    // Render normal button
+    Size buttonSize = {sizeof(button) / sizeof(button[0]), sizeof(button[0]) / sizeof(button[0][0])};
+    Position buttonPos2 = {CENTER_X - buttonSize.xSize/2, RESOLUTION_Y * 2.0 / 3.0 - buttonSize.ySize/2 + RESOLUTION_Y / CHAR_ROW / 2 + 12};
+    drawComponent(buttonPos2, buttonSize, button);
+}
+
+void loadButtonClick() {
+    currentPage = LOAD;
+    modelInit = LOAD_MODEL;
     switchPage = true;
 }
 
@@ -652,7 +701,7 @@ void loadModel() {
         loadTrain = true;
         return;
     }
-    
+
     srand(time(0));
 
     initializeModel(&model, SIZE);
@@ -663,14 +712,30 @@ void loadModel() {
 
     setupModel(&model, RandomInitialization, crossEntropyGradientWithSoftmax);
 
-    int batchSize = 10;
-    int epochs = 6;
-    double learningRate = 0.3;
+    if(modelInit == TRAIN_MODEL) {
+        int batchSize = 10;
+        int epochs = 6;
+        double learningRate = 0.3;
 
-    trainModel(&model,
-                NUM_TRAIN, SIZE, train_image, train_label, 
-                batchSize, epochs, learningRate,
-                NUM_TEST, test_image, test_label);
+        
+        char* epochText = "EPOCH: ";
+        Position epochPos = {CHAR_COL / 2 - 6, CHAR_ROW * 2.0/3.0 + 4};
+        writeText(epochPos, epochText);
+
+        char* iterText = "NUMBER OF ITERATIONS: ";
+        Position iterPos = {CHAR_COL / 2 - 14, CHAR_ROW * 2.0/3.0 + 6};
+        writeText(iterPos, iterText);
+
+        trainModel(&model,
+                    NUM_TRAIN, SIZE, train_image, train_label, 
+                    batchSize, epochs, learningRate,
+                    NUM_TEST, test_image, test_label);
+    } else if (modelInit == LOAD_MODEL) {
+        loadSavedModel(&model);
+    } else {
+        fprintf(stderr, "Error: Model Initiation not defined properly!");
+        exit(1);
+    }
     
     currentPage = MENU;
     switchPage = true;
@@ -871,6 +936,7 @@ void backButtonClick() {
 }
 
 void recognizeButtonClick() {
+    *HEX3_HEX0_BASE = 0x0;
     double featureArray[SIZE] = {0};
     for(int y = 0; y < CANVAS_SIZE; y++) 
         for(int x = 0; x < CANVAS_SIZE; x++)
@@ -899,7 +965,9 @@ handle_draw_ptr handleRender[] = {noHandle,
                                   loadModel,
                                   drawButtonHover, drawButtonNoHover, exitButtonHover, exitButtonNoHover, drawButtonClick, exitButtonClick, 
                                   drawCanvasArray, backButtonHover, backButtonNoHover, recognizeButtonHover, recognizeButtonNoHover,
-                                  backButtonClick, recognizeButtonClick, modeButtonClick};
+                                  backButtonClick, recognizeButtonClick, modeButtonClick,
+                                  loadButtonHover, loadButtonNoHover, loadButtonClick};
+
 
 /************************************************************************************
 *                                                                                   *
@@ -1154,6 +1222,7 @@ int main() {
     switchPageCount = 0;
     numOfHandles = 0;
     drawingMode = PENCIL;
+    *HEX3_HEX0_BASE = 0x0;
 
     canvasReady = true;
 

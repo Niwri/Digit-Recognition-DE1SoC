@@ -3,10 +3,11 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
-#include "mnist.h"
 
-// #define NUM_TEST 200
-// #define NUM_TRAIN 3000
+#include "graphics.h"
+
+#define NUM_TEST 200
+#define NUM_TRAIN 3000
 
 #define SIZE 784
 
@@ -23,10 +24,10 @@
 
 #include "modelData.h"
 
-// #include "dataHeaders/test_image.h"
-// #include "dataHeaders/test_label.h"
-// #include "dataHeaders/train_image.h"
-// #include "dataHeaders/train_label.h"
+#include "dataHeaders/test_image.h"
+#include "dataHeaders/test_label.h"
+#include "dataHeaders/train_image.h"
+#include "dataHeaders/train_label.h"
 
 
 /************************************************************************************
@@ -85,6 +86,17 @@ void freeTriplePointers(void*** pointerToFree, int sizeFirst, int *sizeSecond) {
     }    
 
     free(pointerToFree);
+}
+
+int numOfDigits(int num) {
+    int numOfDigits = 0;
+
+    while(num > 0) {
+        num /= 10;
+        numOfDigits++;
+    }
+    
+    return numOfDigits;
 }
 
 
@@ -519,13 +531,28 @@ void trainModel(Model* model,
     int numOfIterations = ((double)numOfExamples / (double)batchSize + 0.5); 
 
     printf("Number of Iterations: %d\n", numOfIterations);
+    int totalEpochs = epochs;
+
+    char* clearText = "                ";
 
     while(epochs-- > 0) {
         printf("Epoch Num: %d\n", epochs);
+        
+        char epochText[numOfDigits(totalEpochs) + 3 + numOfDigits(6 - epochs) + 1];
+        sprintf(epochText, "%d / %d", 6-epochs, totalEpochs);
+        Position epochPos = {CHAR_COL / 2 + 1, CHAR_ROW * 2.0/3.0 + 4};
+        writeText(epochPos, clearText);
+        writeText(epochPos, epochText);
 
         double totalAccuracy = 0;
 
         for(int iter = 0; iter < numOfIterations; iter++) {
+            char iterText[numOfDigits(iter) + 3 + numOfDigits(numOfIterations) + 1];
+            sprintf(iterText, "%d / %d", iter+1, numOfIterations);
+            Position iterPos = {CHAR_COL / 2 + 8, CHAR_ROW * 2.0/3.0 + 6};
+            writeText(iterPos, clearText);
+            writeText(iterPos, iterText);
+
             double** batchImages;
             int* batchLabel;
             double** batchLabelOneHot;
@@ -795,10 +822,10 @@ void loadSavedModel(Model* model) {
 *   MAIN FUNCTION                                                                   *
 *                                                                                   *
 *************************************************************************************/
-
+/*
 int main() {
 
-    load_mnist();
+    //load_mnist();
 
     srand(time(0));
 
@@ -812,16 +839,16 @@ int main() {
 
     setupModel(&model, RandomInitialization, crossEntropyGradientWithSoftmax);
 
-    int batchSize = 100;
+    int batchSize = 10;
     int epochs = 6;
     double learningRate = 0.3;
 
-    // trainModel(&model,
-    //             NUM_TRAIN, SIZE, train_image, train_label, 
-    //             batchSize, epochs, learningRate,
-    //             NUM_TEST, test_image, test_label);
+    trainModel(&model,
+                NUM_TRAIN, SIZE, train_image, train_label, 
+                batchSize, epochs, learningRate,
+                NUM_TEST, test_image, test_label);
 
-    loadSavedModel(&model);
+    //loadSavedModel(&model);
 
     
     //saveModel(&model);
@@ -844,4 +871,4 @@ int main() {
     printf("\nEnd.");
 
     return 0;
-}
+}*/
