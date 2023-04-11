@@ -839,19 +839,19 @@ int main() {
 
     setupModel(&model, RandomInitialization, crossEntropyGradientWithSoftmax);
 
-    int batchSize = 100;
-    int epochs = 8;
+    int batchSize = 30;
+    int epochs = 10;
     double learningRate = 0.3;
 
-    // trainModel(&model,
-    //             NUM_TRAIN, SIZE, train_image, train_label, 
-    //             batchSize, epochs, learningRate,
-    //             NUM_TEST, test_image, test_label);
+    trainModel(&model,
+                NUM_TRAIN, SIZE, train_image, train_label, 
+                batchSize, epochs, learningRate,
+                NUM_TEST, test_image, test_label);
 
-    loadSavedModel(&model);
+    //loadSavedModel(&model);
 
     
-    //saveModel(&model);
+    saveModel(&model);
 
     char temp;
     for(int testNum = 0; testNum < NUM_TEST; testNum++) {
