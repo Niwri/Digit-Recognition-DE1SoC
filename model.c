@@ -539,7 +539,7 @@ void trainModel(Model* model,
         printf("Epoch Num: %d\n", epochs);
         
         char epochText[numOfDigits(totalEpochs) + 3 + numOfDigits(6 - epochs) + 1];
-        sprintf(epochText, "%d / %d", 6-epochs, totalEpochs);
+        sprintf(epochText, "%d / %d", totalEpochs-epochs, totalEpochs);
         Position epochPos = {CHAR_COL / 2 + 1, CHAR_ROW * 2.0/3.0 + 4};
         writeText(epochPos, clearText);
         writeText(epochPos, epochText);
@@ -719,7 +719,7 @@ void trainModel(Model* model,
 
         printf("Test Accuracy: %f\n", testAccuracy);
 
-        learningRate /= 2;
+        learningRate /= 1.5;
 
         printf("Epoch done.\n");
     }
@@ -742,9 +742,9 @@ void saveModel(Model* model) {
     fptr = fopen("modelData.h", "w");
 
     // Store first weight array
-    fprintf(fptr, "double weightsOne[%d][%d] = {", 84, 784);
+    fprintf(fptr, "double weightsOne[%d][%d] = {", 98, 784);
 
-    for(int i = 0; i < 84; i++) {
+    for(int i = 0; i < 98; i++) {
         fprintf(fptr, "{");
         for(int j = 0; j < 784; j++) {
             fprintf(fptr, "%lf", model->weights[0][i][j]);
@@ -752,20 +752,20 @@ void saveModel(Model* model) {
                 fprintf(fptr, ",");
         }
         fprintf(fptr, "}");
-        if(i < 83)
+        if(i < 97)
             fprintf(fptr, ",");
     }
 
     fprintf(fptr, "};\n");
 
     // Store second weight array
-    fprintf(fptr, "double weightsTwo[%d][%d] = {", 10, 84);
+    fprintf(fptr, "double weightsTwo[%d][%d] = {", 10, 98);
 
     for(int i = 0; i < 10; i++) {
         fprintf(fptr, "{");
-        for(int j = 0; j < 84; j++) {
+        for(int j = 0; j < 98; j++) {
             fprintf(fptr, "%lf", model->weights[1][i][j]);
-            if(j < 83)
+            if(j < 97)
                 fprintf(fptr, ",");
         }
         fprintf(fptr, "}");
@@ -776,11 +776,11 @@ void saveModel(Model* model) {
     fprintf(fptr, "};\n");
 
     // Store first bias array
-    fprintf(fptr, "double biasOne[%d] = {", 84);
+    fprintf(fptr, "double biasOne[%d] = {", 98);
 
-    for(int i = 0; i < 84; i++) {
+    for(int i = 0; i < 98; i++) {
         fprintf(fptr, "%lf", model->bias[0][i]);
-        if(i < 83)
+        if(i < 97)
             fprintf(fptr, ",");
     }
 
@@ -801,15 +801,15 @@ void saveModel(Model* model) {
 
 void loadSavedModel(Model* model) {
 
-    for(int i = 0; i < 84; i++)
+    for(int i = 0; i < 98; i++)
         for(int j = 0; j < 784; j++)
             model->weights[0][i][j] = weightsOne[i][j];
     
     for(int i = 0; i < 10; i++)
-        for(int j = 0; j < 84; j++)
+        for(int j = 0; j < 98; j++)
             model->weights[1][i][j] = weightsTwo[i][j];
     
-    for(int i = 0; i < 84; i++)
+    for(int i = 0; i < 98; i++)
         model->bias[0][i] = biasOne[i];
     
     for(int i = 0; i < 10; i++)
@@ -825,7 +825,7 @@ void loadSavedModel(Model* model) {
 /*
 int main() {
 
-    //load_mnist();
+    load_mnist();
 
     srand(time(0));
 
@@ -833,22 +833,22 @@ int main() {
 
     initializeModel(&model, SIZE);
 
-    addLayer(&model, LINEAR, 84, leakReLuVector, leakReLuGradient);
+    addLayer(&model, LINEAR, 98, leakReLuVector, leakReLuGradient);
 
     addLayer(&model, LINEAR, 10, softMaxVector, softMaxGradient);
 
     setupModel(&model, RandomInitialization, crossEntropyGradientWithSoftmax);
 
-    int batchSize = 10;
-    int epochs = 6;
+    int batchSize = 100;
+    int epochs = 8;
     double learningRate = 0.3;
 
-    trainModel(&model,
-                NUM_TRAIN, SIZE, train_image, train_label, 
-                batchSize, epochs, learningRate,
-                NUM_TEST, test_image, test_label);
+    // trainModel(&model,
+    //             NUM_TRAIN, SIZE, train_image, train_label, 
+    //             batchSize, epochs, learningRate,
+    //             NUM_TEST, test_image, test_label);
 
-    //loadSavedModel(&model);
+    loadSavedModel(&model);
 
     
     //saveModel(&model);

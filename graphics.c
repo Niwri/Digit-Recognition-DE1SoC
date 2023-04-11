@@ -120,6 +120,8 @@ Position canvasDrawThirdPosition;
 
 ModelInitiation modelInit = UNKNOWN;
 
+bool leftHold = false;
+
 /************************************************************************************
 *                                                                                   *
 *   Basic Drawing                                                                   *
@@ -624,7 +626,8 @@ void canvasHandle() {
     Position modePos = {CENTER_X - modeSize.xSize / 2, RESOLUTION_Y * 9.0 / 11.0 - modeSize.ySize / 2 + RESOLUTION_Y / CHAR_ROW / 2};
 
     if(mouseIsInside(modePos.x, modePos.x + modeSize.xSize, modePos.y, modePos.y + modeSize.ySize) == true) {
-        if(leftClick) {
+        if(leftClick == true && leftHold == false) {
+            leftHold = true;
             handleNum[numOfHandles] = 18;
             numOfHandles++;
         }
@@ -706,7 +709,7 @@ void loadModel() {
 
     initializeModel(&model, SIZE);
 
-    addLayer(&model, LINEAR, 84, leakReLuVector, leakReLuGradient);
+    addLayer(&model, LINEAR, 98, leakReLuVector, leakReLuGradient);
 
     addLayer(&model, LINEAR, 10, softMaxVector, softMaxGradient);
 
@@ -714,7 +717,7 @@ void loadModel() {
 
     if(modelInit == TRAIN_MODEL) {
         int batchSize = 10;
-        int epochs = 6;
+        int epochs = 2;
         double learningRate = 0.3;
 
         
@@ -943,12 +946,6 @@ void recognizeButtonClick() {
             featureArray[y * CANVAS_SIZE + x] = drawArray[y][x];
     printf("Recognizing...\n");
 
-    printf("Processed image:\n");
-    for (int i=0; i<784; i++) {
-        printf("%1.1f ", featureArray[i]);
-        if ((i+1) % 28 == 0) putchar('\n');
-    }
-
     displayResult(predictModel(&model, SIZE, featureArray));
 }
 
@@ -1078,6 +1075,9 @@ void mouseInput() {
         mouse.y = BORDER_TOP + 9;
 
     leftClick = mousePackets[0] & 0b1;
+
+    if(leftClick != 1)
+        leftHold = false;
 }
 
 
