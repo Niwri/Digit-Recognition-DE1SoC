@@ -719,7 +719,7 @@ void trainModel(Model* model,
 
         printf("Test Accuracy: %f\n", testAccuracy);
 
-        learningRate /= 1.5;
+        learningRate /= 1.2;
 
         printf("Epoch done.\n");
     }
@@ -839,7 +839,7 @@ int main() {
 
     setupModel(&model, RandomInitialization, crossEntropyGradientWithSoftmax);
 
-    int batchSize = 30;
+    int batchSize = 100;
     int epochs = 10;
     double learningRate = 0.3;
 
