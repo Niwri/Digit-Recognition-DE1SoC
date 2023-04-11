@@ -1,6 +1,7 @@
 /*
-Takafumi Hoiruchi. 2018.
+From Takafumi Hoiruchi. 2018.
 https://github.com/takafumihoriuchi/MNIST_for_C
+Edited functions and added new ones to pre-train model with training dataset of 60000 examples. Not used during run-time of the program.
 */
 
 #include <stdio.h>
