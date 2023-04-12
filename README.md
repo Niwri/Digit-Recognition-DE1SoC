@@ -11,7 +11,7 @@ The software was programmed in a week and used to submit for the Final Project s
 
 ## Neural Network
 1) Input Layer (784 Nodes, Flattened array of 28x28 pixels)
-2) Linear Layer(84 Nodes, Leaky ReLu Activation)
+2) Linear Layer (84 Nodes, Leaky ReLu Activation)
 3) Linear Layer (10 Nodes, Softmax Activation)
 4) Output (10 Nodes)
 
