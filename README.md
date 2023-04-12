@@ -17,6 +17,11 @@ Output (10 Nodes)
 
 Loss Function: Multi-classification Cross Entropy Loss
 
+## Next Steps
+The linear model has its short-comings. The main problem is that due to the nature of a linear model, it does not accurately recognize its image but rather finds how similar the drawn digit is to the trained MNIST data in terms of pixel placement in the 28x28 canvas.
+
+To improve on this, we can instead use a Convoluted Neural Network model to better recognize the digit drawn based on features rather than just pixel placements. Due to the short time-frame of 1 week and being the first time to create a neural network, much less in C, we were unable to get time to improve on the model architecture.
+
 ## What each file does
 The following describes the use-case of each file, and how to edit them if needed
 #### model.c
