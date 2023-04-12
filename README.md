@@ -6,8 +6,8 @@ The software is entirely programmed in C.
 The software was programmed in a week and used to submit for the Final Project submission in ECE243.
 
 ## Hardware
-DE1-SoC Board
-PS/2 Mouse
+- DE1-SoC Board
+- PS/2 Mouse
 
 ## Neural Network
 Input Layer (784 Nodes, Flattened array of 28x28 pixels)
