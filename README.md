@@ -41,4 +41,9 @@ This file stores the saved model run in model.c. It does so when the "saveModel(
 #### updatedModel.h
 This file is the compiled file of model.c and is used to be compiled into graphics.c. Note that the "main()" function from model.c is commented out for this very reason.
 
+#### mnist.h
+The majority of this file was written by Takafumi Horiuchi, in which is code was publically shared here: https://github.com/takafumihoriuchi/MNIST_for_C
+
+The file was edited and new functions were added to support the training and development of the Linear Neural Network model, such as dividing the dataset into smaller datasets to be used on the board.
+
 
