@@ -10,10 +10,10 @@ The software was programmed in a week and used to submit for the Final Project s
 - PS/2 Mouse
 
 ## Neural Network
-Input Layer (784 Nodes, Flattened array of 28x28 pixels)
-Linear Layer(84 Nodes, Leaky ReLu Activation)
-Linear Layer (10 Nodes, Softmax Activation)
-Output (10 Nodes)
+1) Input Layer (784 Nodes, Flattened array of 28x28 pixels)
+2) Linear Layer(84 Nodes, Leaky ReLu Activation)
+3) Linear Layer (10 Nodes, Softmax Activation)
+4) Output (10 Nodes)
 
 Loss Function: Multi-classification Cross Entropy Loss
 
